@@ -88,7 +88,7 @@ selector = name
 domain = name
 ```
 
-* headers: the list of headers that should be signed, separated by commas, colons or semi-colons. Signing prevents tampering with the specified headers. The 'From' header is required by the RFC and will be added if missing.
+- headers: the list of headers that should be signed, separated by commas, colons or semi-colons. Signing prevents tampering with the specified headers. The 'From' header is required by the RFC and will be added if missing.
 
 ## Single Domain Configuration
 
@@ -97,7 +97,7 @@ To sign all messages with a single DKIM key, you must set the selector and domai
 - selector - Set this to the selector name published in DNS under the \_domainkey sub-domain of the domain referenced below.
 - domain - Set this to the domain name that will be used to sign messages which don't match a per-domain DKIM key. The DNS TXT entry for:
 
-    <selector>.\_domainkey.<domain>
+  <selector>.\_domainkey.<domain>
 
 Test that your DKIM key is published properly with a DNS request like this:
 
@@ -142,7 +142,6 @@ You can add `--debug` to the option arguments to see a full trace of the process
 ## Notes
 
 This plugin and underlying library do not currently support DKIM body length limits (l=).
-
 
 <!-- leave these buried at the bottom of the document -->
 

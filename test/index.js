@@ -7,12 +7,11 @@ const fixtures = require('haraka-test-fixtures')
 
 beforeEach(() => {
   this.plugin = new fixtures.plugin('dkim')
-  this.plugin.config.root_path = path.resolve('test','config')
+  this.plugin.config.root_path = path.resolve('test', 'config')
   delete this.plugin.config.overrides_path
 })
 
 describe('plugin', () => {
-
   it('loads', () => {
     assert.ok(this.plugin)
   })
