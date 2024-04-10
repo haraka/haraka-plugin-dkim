@@ -11,7 +11,16 @@ const dkim = require('./lib/dkim')
 const { DKIMVerifyStream, DKIMSignStream } = dkim
 
 exports.register = function () {
+  const plugin = this
   this.load_dkim_ini()
+
+  dkim.DKIMObject.prototype.debug = (str) => {
+    plugin.logdebug(str)
+  }
+
+  DKIMVerifyStream.prototype.debug = (str) => {
+    plugin.logdebug(str)
+  }
 
   this.register_hook('data_post', 'dkim_verify')
   this.register_hook('queue_outbound', 'hook_pre_send_trans_email')
@@ -293,14 +302,6 @@ exports.get_sender_domain = function (connection) {
     }
   }
   return domain
-}
-
-dkim.DKIMObject.prototype.debug = (str) => {
-  exports.logdebug(str)
-}
-
-DKIMVerifyStream.prototype.debug = (str) => {
-  exports.logdebug(str)
 }
 
 exports.dkim_verify = function (next, connection) {
