@@ -1,0 +1,39 @@
+{
+  "name": "haraka-plugin-template",
+  "version": "1.0.6",
+  "description": "Haraka plugin that...CHANGE THIS",
+  "main": "index.js",
+  "files": [
+    "CHANGELOG.md",
+    "config"
+  ],
+  "scripts": {
+    "format": "npm run prettier:fix && npm run lint:fix",
+    "lint": "npx eslint@^8 *.js test",
+    "lint:fix": "npx eslint@^8 *.js test --fix",
+    "prettier": "npx prettier . --check",
+    "prettier:fix": "npx prettier . --write --log-level=warn",
+    "test": "node --test",
+    "versions": "npx @msimerson/dependency-version-checker check",
+    "versions:fix": "npx @msimerson/dependency-version-checker update"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haraka/haraka-plugin-template.git"
+  },
+  "keywords": [
+    "haraka",
+    "plugin",
+    "template"
+  ],
+  "author": "Welcome Member <happy-haraka-hacker@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/haraka/haraka-plugin-template/issues"
+  },
+  "homepage": "https://github.com/haraka/haraka-plugin-template#readme",
+  "devDependencies": {
+    "@haraka/eslint-config": "1.1.3",
+    "haraka-test-fixtures": "1.3.5"
+  }
+}
