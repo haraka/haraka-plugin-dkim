@@ -11,14 +11,22 @@ const dkim = require('./lib/dkim')
 const { DKIMVerifyStream, DKIMSignStream } = dkim
 
 exports.register = function () {
+  const plugin = this
   this.load_dkim_ini()
+
+  dkim.DKIMObject.prototype.debug = (str) => {
+    plugin.logdebug(str)
+  }
+
+  DKIMVerifyStream.prototype.debug = (str) => {
+    plugin.logdebug(str)
+  }
 
   this.register_hook('data_post', 'dkim_verify')
   this.register_hook('queue_outbound', 'hook_pre_send_trans_email')
 }
 
 exports.load_dkim_ini = function () {
-
   this.cfg = this.config.get(
     'dkim.ini',
     {
@@ -295,55 +303,50 @@ exports.get_sender_domain = function (connection) {
   return domain
 }
 
-dkim.DKIMObject.prototype.debug = (str) => {
-  exports.logdebug(str)
-}
-
-DKIMVerifyStream.prototype.debug = (str) => {
-  exports.logdebug(str)
-}
-
 exports.dkim_verify = function (next, connection) {
   const txn = connection?.transaction
   if (!txn) return next()
 
-  const verifier = new DKIMVerifyStream(this.cfg.verify, (err, result, results) => {
-    if (err) {
-      txn.results.add(this, { err })
-      return next()
-    }
-    if (!results || results.length === 0) {
-      txn.results.add(this, { skip: 'no/bad dkim signature' })
-      return next(CONT, 'no/bad signature')
-    }
-    results.forEach((res) => {
-      let res_err = ''
-      if (res.error) res_err = ` (${res.error})`
-      connection.auth_results(
-        `dkim=${res.result}${res_err} header.i=${res.identity} header.d=${res.domain} header.s=${res.selector}`,
-      )
-      connection.loginfo(
-        this,
-        `identity="${res.identity}" domain="${res.domain}" selector="${res.selector}" result=${res.result} ${res_err}`,
-      )
-
-      // save to ResultStore
-      const rs_obj = JSON.parse(JSON.stringify(res))
-      if (res.result === 'pass') {
-        rs_obj.pass = res.domain
-      } else if (res.result === 'fail') {
-        rs_obj.fail = res.domain + res_err
-      } else {
-        rs_obj.err = res.domain + res_err
+  const verifier = new DKIMVerifyStream(
+    this.cfg.verify,
+    (err, result, results) => {
+      if (err) {
+        txn.results.add(this, { err })
+        return next()
       }
-      txn.results.add(this, rs_obj)
-    })
+      if (!results || results.length === 0) {
+        txn.results.add(this, { skip: 'no/bad dkim signature' })
+        return next(CONT, 'no/bad signature')
+      }
+      for (const res of results) {
+        let res_err = ''
+        if (res.error) res_err = ` (${res.error})`
+        connection.auth_results(
+          `dkim=${res.result}${res_err} header.i=${res.identity} header.d=${res.domain} header.s=${res.selector}`,
+        )
+        connection.loginfo(
+          this,
+          `identity="${res.identity}" domain="${res.domain}" selector="${res.selector}" result=${res.result} ${res_err}`,
+        )
 
-    connection.logdebug(this, JSON.stringify(results))
-    // Store results for other plugins
-    txn.notes.dkim_results = results
-    next()
-  })
+        // save to ResultStore
+        const rs_obj = JSON.parse(JSON.stringify(res))
+        if (res.result === 'pass') {
+          rs_obj.pass = res.domain
+        } else if (res.result === 'fail') {
+          rs_obj.fail = res.domain + res_err
+        } else {
+          rs_obj.err = res.domain + res_err
+        }
+        txn.results.add(this, rs_obj)
+      }
+
+      connection.logdebug(this, JSON.stringify(results))
+      // Store results for other plugins
+      txn.notes.dkim_results = results
+      next()
+    },
+  )
 
   txn.message_stream.pipe(verifier, { line_endings: '\r\n' })
 }
