@@ -8,23 +8,23 @@ const fixtures = require("haraka-test-fixtures");
 //    assert: https://nodejs.org/api/assert.html
 
 beforeEach(function () {
-  this.plugin = new fixtures.plugin("template");
+  this.plugin = new fixtures.plugin("haraka-plugin-dkim");
 });
 
-describe("template", function () {
+describe("haraka-plugin-dkim", function () {
   it("loads", function () {
     assert.ok(this.plugin);
   });
 });
 
-describe("load_template_ini", function () {
-  it("loads template.ini from config/template.ini", function () {
-    this.plugin.load_template_ini();
+describe("load_haraka-plugin-dkim_ini", function () {
+  it("loads haraka-plugin-dkim.ini from config/haraka-plugin-dkim.ini", function () {
+    this.plugin.load_haraka-plugin-dkim_ini();
     assert.ok(this.plugin.cfg);
   });
 
   it("initializes enabled boolean", function () {
-    this.plugin.load_template_ini();
+    this.plugin.load_haraka-plugin-dkim_ini();
     assert.equal(this.plugin.cfg.main.enabled, true, this.plugin.cfg);
   });
 });

@@ -1,5 +1,5 @@
 {
-  "name": "haraka-plugin-template",
+  "name": "haraka-plugin-haraka-plugin-dkim",
   "version": "1.0.6",
   "description": "Haraka plugin that...CHANGE THIS",
   "main": "index.js",
@@ -19,19 +19,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haraka/haraka-plugin-template.git"
+    "url": "git+https://github.com/haraka/haraka-plugin-haraka-plugin-dkim.git"
   },
   "keywords": [
     "haraka",
     "plugin",
-    "template"
+    "haraka-plugin-dkim"
   ],
   "author": "Welcome Member <happy-haraka-hacker@example.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/haraka/haraka-plugin-template/issues"
+    "url": "https://github.com/haraka/haraka-plugin-haraka-plugin-dkim/issues"
   },
-  "homepage": "https://github.com/haraka/haraka-plugin-template#readme",
+  "homepage": "https://github.com/haraka/haraka-plugin-haraka-plugin-dkim#readme",
   "devDependencies": {
     "@haraka/eslint-config": "1.1.3",
     "haraka-test-fixtures": "1.3.5"
