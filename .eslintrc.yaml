@@ -4,4 +4,4 @@ env:
   mocha: true
   es2022: true
 
-extends: ["@haraka"]
+extends: ['@haraka']
