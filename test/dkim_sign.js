@@ -14,7 +14,7 @@ beforeEach(() => {
   this.plugin = new fixtures.plugin('dkim')
 
   this.connection = fixtures.connection.createConnection()
-  this.connection.transaction = fixtures.transaction.createTransaction()
+  this.connection.init_transaction()
 })
 
 describe('get_sender_domain', () => {

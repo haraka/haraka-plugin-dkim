@@ -36,7 +36,7 @@ describe('uses text fixtures', () => {
 
   it('sets up a transaction', () => {
     this.connection = fixtures.connection.createConnection({})
-    this.connection.transaction = fixtures.transaction.createTransaction({})
+    this.connection.init_transaction()
     assert.ok(this.connection.transaction.header)
   })
 })
@@ -51,6 +51,7 @@ const expectedCfg = {
       'From, Sender, Reply-To, Subject, Date, Message-ID, To, Cc, MIME-Version',
   },
   verify: {
+    enabled: true,
     timeout: 29,
   },
   headers_to_sign: [

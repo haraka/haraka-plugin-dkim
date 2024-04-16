@@ -22,15 +22,20 @@ exports.register = function () {
     plugin.logdebug(str)
   }
 
-  this.register_hook('data_post', 'dkim_verify')
-  this.register_hook('queue_outbound', 'hook_pre_send_trans_email')
+  if (this.cfg.verify.enabled) {
+    this.register_hook('data_post', 'dkim_verify')
+  }
+
+  if (this.cfg.sign.enabled) {
+    this.register_hook('queue_outbound', 'hook_pre_send_trans_email')
+  }
 }
 
 exports.load_dkim_ini = function () {
   this.cfg = this.config.get(
     'dkim.ini',
     {
-      booleans: ['-sign.enabled'],
+      booleans: ['-sign.enabled', '+verify.enabled'],
     },
     () => {
       this.load_dkim_ini()
@@ -304,6 +309,8 @@ exports.get_sender_domain = function (connection) {
 }
 
 exports.dkim_verify = function (next, connection) {
+  if (!this.cfg.verify.enabled) return next()
+
   const txn = connection?.transaction
   if (!txn) return next()
 

@@ -1,6 +1,6 @@
 {
   "name": "haraka-plugin-dkim",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Haraka DKIM plugin",
   "main": "index.js",
   "files": [
@@ -16,8 +16,8 @@
     "prettier": "npx prettier . --check",
     "prettier:fix": "npx prettier . --write --log-level=warn",
     "test": "node --test",
-    "versions": "npx @msimerson/dependency-version-checker check",
-    "versions:fix": "npx @msimerson/dependency-version-checker update"
+    "versions": "npx dependency-version-checker check",
+    "versions:fix": "npx dependency-version-checker update"
   },
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
   "homepage": "https://github.com/haraka/haraka-plugin-dkim#readme",
   "devDependencies": {
     "@haraka/eslint-config": "1.1.3",
-    "haraka-test-fixtures": "1.3.5"
+    "haraka-test-fixtures": "1.3.7"
   },
   "dependencies": {
     "address-rfc2821": "^2.1.2",
