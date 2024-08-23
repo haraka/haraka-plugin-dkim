@@ -75,7 +75,7 @@ exports.hook_pre_send_trans_email = function (next, connection) {
     return next()
   }
 
-  exports.get_sign_properties(connection, (err, props) => {
+  this.get_sign_properties(connection, (err, props) => {
     if (!connection?.transaction) return next()
     // props: selector, domain, & private_key
     if (err) connection.logerror(this, `${err.message}`)
