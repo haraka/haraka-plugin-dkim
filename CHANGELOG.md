@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.0.5] - 2024-08-23
+
+- fix: avoid crash by ensuring appropriate context for load_key
+
 ### [1.0.4] - 2024-05-21
 
 - populate [bin] in package.json
@@ -25,3 +29,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.0.2]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.2
 [1.0.3]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.3
 [1.0.4]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.4
+[1.0.5]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.5
