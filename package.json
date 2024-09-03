@@ -1,6 +1,6 @@
 {
   "name": "haraka-plugin-dkim",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Haraka DKIM plugin",
   "bin": [
     "dkim_key_gen.sh",

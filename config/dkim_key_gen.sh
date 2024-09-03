@@ -10,8 +10,6 @@ usage()
 DOMAIN="$1"
 if [ -z "$DOMAIN" ]; then usage; fi
 
-SMTPD=${2="www"}
-
 # Create a directory for each DKIM signing domain
 mkdir -p "$DOMAIN"
 cd "$DOMAIN" || exit
