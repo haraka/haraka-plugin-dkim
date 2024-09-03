@@ -4,11 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-### [1.0.6] - 2024-09-02
+### [1.0.7] - 2024-09-02
 
 - fix(dkim_key_gen.sh): remove unused variable
 
-### [1.0.5] - 2024-08-23
+### [1.0.6] - 2024-08-23
 
 - fix: avoid crash by ensuring appropriate context for load_key
 
@@ -35,3 +35,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.0.4]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.4
 [1.0.5]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.5
 [1.0.6]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.6
+[1.0.7]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.7
