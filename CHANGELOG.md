@@ -4,6 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.0.8] - 2024-10-01
+
+- dep(nopt): 8.0.0
+- dep(async): 3.2.6
+- dep(haraka-email-message): 1.2.4
+- dep(haraka-test-fixtures): 1.3.8 
+
 ### [1.0.7] - 2024-09-02
 
 - fix(dkim_key_gen.sh): remove unused variable
@@ -36,3 +43,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.0.5]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.5
 [1.0.6]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.6
 [1.0.7]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.7
+[1.0.8]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.8
