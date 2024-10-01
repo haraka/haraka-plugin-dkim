@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - dep(nopt): 8.0.0
 - dep(async): 3.2.6
 - dep(haraka-email-message): 1.2.4
-- dep(haraka-test-fixtures): 1.3.8 
+- dep(haraka-test-fixtures): 1.3.8
 
 ### [1.0.7] - 2024-09-02
 
