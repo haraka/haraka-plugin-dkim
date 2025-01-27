@@ -19,4 +19,7 @@ export default [...compat.extends("@haraka"), {
             ...globals.mocha,
         },
     },
+    rules: {
+        'no-unused-vars': ['warn', { caughtErrorsIgnorePattern: '^ignore' }],
+    }
 }];

@@ -276,7 +276,7 @@ exports.get_sender_domain = function (connection) {
   let addrs
   try {
     addrs = addrparser.parse(from_hdr)
-  } catch (e) {
+  } catch (ignore) {
     connection.logerror(
       this,
       `address-rfc2822 failed to parse From header: ${from_hdr}`,
