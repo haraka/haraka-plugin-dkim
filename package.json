@@ -1,6 +1,6 @@
 {
   "name": "haraka-plugin-dkim",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Haraka DKIM plugin",
   "bin": [
     "dkim_key_gen.sh",
@@ -42,15 +42,15 @@
   "homepage": "https://github.com/haraka/haraka-plugin-dkim#readme",
   "devDependencies": {
     "@haraka/eslint-config": "^2.0.2",
-    "haraka-test-fixtures": "1.3.7"
+    "haraka-test-fixtures": "1.3.9"
   },
   "dependencies": {
-    "address-rfc2821": "^2.1.2",
-    "address-rfc2822": "^2.2.2",
-    "async": "^3.2.5",
-    "haraka-email-message": "^1.2.3",
-    "haraka-utils": "^1.1.3",
-    "nopt": "^7.2.1"
+    "address-rfc2821": "^2.1.3",
+    "address-rfc2822": "^2.2.3",
+    "async": "^3.2.6",
+    "haraka-email-message": "^1.2.5",
+    "haraka-utils": "^1.1.4",
+    "nopt": "^8.1.0"
   },
   "prettier": {
     "singleQuote": true,
