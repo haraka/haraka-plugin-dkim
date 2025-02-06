@@ -322,9 +322,13 @@ exports.dkim_verify = function (next, connection) {
         return next()
       }
       if (!results || results.length === 0) {
-        txn.results.add(this, { skip: 'no/bad dkim signature' })
+        txn.results.add(this, { skip: 'no/bad signature' })
         return next(CONT, 'no/bad signature')
       }
+
+      connection.logdebug(this, JSON.stringify(results))
+      txn.notes.dkim_results = results // Store results for other plugins
+
       for (const res of results) {
         let res_err = ''
         if (res.error) res_err = ` (${res.error})`
@@ -337,20 +341,19 @@ exports.dkim_verify = function (next, connection) {
         )
 
         // save to ResultStore
-        const rs_obj = JSON.parse(JSON.stringify(res))
-        if (res.result === 'pass') {
-          rs_obj.pass = res.domain
-        } else if (res.result === 'fail') {
-          rs_obj.fail = res.domain + res_err
-        } else {
-          rs_obj.err = res.domain + res_err
+        const rs_tidy = {
+          domain: res.domain,
+          identity: res.identity,
+          selector: res.selector,
         }
-        txn.results.add(this, rs_obj)
+
+        if (res.result === 'pass') res.pass = res.domain
+        if (res.result === 'fail') res.fail = res.domain
+        if (res.error) rs_tidy.err = res.error
+
+        txn.results.add(this, rs_tidy)
       }
 
-      connection.logdebug(this, JSON.stringify(results))
-      // Store results for other plugins
-      txn.notes.dkim_results = results
       next()
     },
   )
