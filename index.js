@@ -347,8 +347,8 @@ exports.dkim_verify = function (next, connection) {
           selector: res.selector,
         }
 
-        if (res.result === 'pass') res.pass = res.domain
-        if (res.result === 'fail') res.fail = res.domain
+        if (res.result === 'pass') rs_tidy.pass = res.domain
+        if (res.result === 'fail') rs_tidy.fail = res.domain
         if (res.error) rs_tidy.err = res.error
 
         txn.results.add(this, rs_tidy)
