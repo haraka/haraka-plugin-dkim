@@ -4,7 +4,7 @@ const assert = require('node:assert')
 const { beforeEach, describe, it } = require('node:test')
 
 const fs = require('node:fs/promises')
-const path = require('node:path')
+const path = require('path')
 
 const Address = require('address-rfc2821')
 const fixtures = require('haraka-test-fixtures')
@@ -121,45 +121,39 @@ describe('get_key_dir', () => {
     })
   })
 
-  it('no transaction', async () => {
-    await new Promise((resolve) => {
-      this.plugin.get_key_dir(this.connection, '', (err, dir) => {
-        assert.ifError(err)
-        assert.equal(dir, undefined)
-        resolve()
-      })
+  it('no transaction', (t, done) => {
+    this.plugin.get_key_dir(this.connection, '', (err, dir) => {
+      assert.ifError(err)
+      assert.equal(dir, undefined)
+      done()
     })
   })
 
-  it('no key dir', async () => {
+  it('no key dir', (t, done) => {
     this.connection.transaction.mail_from = new Address.Address(
       '<matt@non-exist.com>',
     )
-    await new Promise((resolve) => {
-      this.plugin.get_key_dir(this.connection, 'non-exist.com', (err, dir) => {
-        assert.equal(dir, undefined)
-        resolve()
-      })
+    this.plugin.get_key_dir(this.connection, 'non-exist.com', (err, dir) => {
+      assert.equal(dir, undefined)
+      done()
     })
   })
 
-  it('test example.com key dir', async () => {
+  it('test example.com key dir', (t, done) => {
     process.env.HARAKA = path.resolve('test')
     this.connection.transaction.mail_from = new Address.Address(
       '<matt@example.com>',
     )
-    await new Promise((resolve) => {
-      this.plugin.get_key_dir(
-        this.connection,
-        { domain: 'example.com' },
-        (err, dir) => {
-          // console.log(arguments);
-          const expected = path.resolve('test', 'config', 'dkim', 'example.com')
-          assert.equal(dir, expected)
-          resolve()
-        },
-      )
-    })
+    this.plugin.get_key_dir(
+      this.connection,
+      { domain: 'example.com' },
+      (err, dir) => {
+        // console.log(arguments);
+        const expected = path.resolve('test', 'config', 'dkim', 'example.com')
+        assert.equal(dir, expected)
+        done()
+      },
+    )
   })
 })
 
