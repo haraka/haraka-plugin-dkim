@@ -101,6 +101,7 @@ exports.hook_pre_send_trans_email = function (next, connection) {
         connection.transaction.notes.dkim_signed = true
         next()
       }),
+      {}, // options
     )
   })
 }
