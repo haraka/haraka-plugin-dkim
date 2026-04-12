@@ -51,9 +51,6 @@ exports.load_dkim_ini = function () {
   this.cfg.headers_to_sign = this.get_headers_to_sign()
 }
 
-// dkim_signer
-// Implements DKIM core as per www.dkimcore.org
-
 exports.load_dkim_default_key = function () {
   this.private_key = this.config
     .get('dkim.private.key', 'data', () => {
@@ -86,6 +83,7 @@ exports.hook_pre_send_trans_email = function (next, connection) {
 
     const txn = connection.transaction
     props.headers = this.cfg.headers_to_sign
+    props.body_canon = this.cfg.canon?.body || 'simple'
 
     txn.message_stream.pipe(
       new DKIMSignStream(props, txn.header, (err2, dkim_header) => {

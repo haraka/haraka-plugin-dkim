@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict')
 const { describe, it, mock, afterEach } = require('node:test')
+const crypto = require('node:crypto')
 const dns = require('node:dns')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -122,6 +123,32 @@ describe('DKIMObject.canonicalize (relaxed body)', () => {
   it('handles LF-only line ending', () => {
     // LF-only input: canonicalize should still append CRLF
     assert.equal(canon('Hello\n'), 'Hello\r\n')
+  })
+
+  it('signs with relaxed body canonicalization', (t, done) => {
+    const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 1024 })
+    const headerLines = ['From: <user@example.com>', 'Subject: Test']
+    const hdr = new message.Header()
+    hdr.parse(headerLines)
+
+    const props = {
+      selector: 'test',
+      domain: 'example.com',
+      private_key: privateKey,
+      headers: ['from', 'subject'],
+      body_canon: 'relaxed'
+    }
+
+    const signer = new DKIMSignStream(props, hdr, (err, dkimValue) => {
+      assert.ifError(err)
+      assert.ok(dkimValue.includes('c=relaxed/relaxed'))
+      done()
+    })
+
+    // Relaxed body: ignore trailing spaces, collapse multiple spaces
+    signer.write(Buffer.from('Line 1  \r\n'))
+    signer.write(Buffer.from('Line    2\r\n'))
+    signer.end()
   })
 })
 

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.1.0] - 2026-04-12
 
+- feat: add ed25519 validation
+- test: if opendkim installed, round trip test against it
 - fix: don't allow rsa-sha1, RFC 8301 3.2
 - fix: don't allow subsequent fail to overwrite a pass
 - fix: don't discard valid signatures when DNS has > 1 acceptable hash

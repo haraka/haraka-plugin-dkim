@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict')
 const { describe, it, mock, afterEach } = require('node:test')
+const crypto = require('node:crypto')
 const dns = require('node:dns')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -732,6 +733,66 @@ describe('DKIMVerifyStream', () => {
       done()
     })
     verifier.write(Buffer.from(email))
+    verifier.end()
+  })
+})
+
+
+describe('MAX_HEADER_SIZE', () => {
+  it('rejects headers exceeding MAX_HEADER_SIZE', (t, done) => {
+    process.env.MAX_HEADER_SIZE = '100'
+    const verifier = new DKIMVerifyStream({}, (err) => {
+      assert.ok(err)
+      assert.equal(err.message, 'maximum header size exceeded')
+      delete process.env.MAX_HEADER_SIZE
+      done()
+    })
+
+    const largeHeader = 'X-Large: ' + 'a'.repeat(200) + '\r\n'
+    verifier.write(Buffer.from(largeHeader))
+  })
+})
+
+describe('Ed25519 Support (RFC 8463)', () => {
+  it('verifies an Ed25519 signature', (t, done) => {
+    // Generate Ed25519 key pair
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519')
+    const pubKeyBase64 = publicKey.export({ type: 'spki', format: 'der' }).toString('base64')
+
+    const header = 'From: <user@example.com>\r\n'
+    const body = 'Hello World\r\n'
+    
+    const bh = crypto.createHash('sha256').update(body).digest('base64')
+    
+    // Manually construct DKIM-Signature for ed25519-sha256
+    const dkimHeaderPartial = `v=1; a=ed25519-sha256; c=relaxed/simple; d=example.com; s=ed25519; h=from; bh=${bh}; b=`
+    
+    // Use the actual implementation's canonicalization
+    const dkimObj = new DKIMObject(`DKIM-Signature: ${dkimHeaderPartial}`, {}, () => {}, { timeout: 1 })
+    const canonHeader = dkimObj.header_canon_relaxed(header)
+    
+    let canonDkimSig = dkimObj.header_canon_relaxed(`DKIM-Signature: ${dkimHeaderPartial}`)
+    canonDkimSig = canonDkimSig.replace(/\r\n$/, '') // implementation removes trailing CRLF
+    
+    const dataToSign = Buffer.from(canonHeader + canonDkimSig)
+    const signature = crypto.sign(null, dataToSign, privateKey).toString('base64')
+    
+    const fullDkimHeader = `DKIM-Signature: ${dkimHeaderPartial}${signature}\r\n`
+    const fullEmail = `${fullDkimHeader}${header}\r\n${body}`
+
+    mock.method(dns, 'resolveTxt', (name, cb) => {
+      assert.equal(name, 'ed25519._domainkey.example.com')
+      cb(null, [['v=DKIM1; k=ed25519; p=' + pubKeyBase64]])
+    })
+
+    const verifier = new DKIMVerifyStream({}, (err, result, results) => {
+      assert.ifError(err)
+      assert.equal(result, 'pass')
+      assert.equal(results[0].result, 'pass')
+      done()
+    })
+
+    verifier.write(Buffer.from(fullEmail))
     verifier.end()
   })
 })
