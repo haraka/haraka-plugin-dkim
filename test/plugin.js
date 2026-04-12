@@ -91,25 +91,25 @@ const expectedCfg = {
 
 describe('register', () => {
   beforeEach(() => {
-    this.plugin.config.root_path = path.resolve(__dirname, 'config')
+    plugin.config.root_path = path.resolve(__dirname, 'config')
   })
 
   it('registers and populates cfg', () => {
-    assert.equal(this.plugin.cfg, undefined)
-    this.plugin.register()
-    assert.deepEqual(this.plugin.cfg, expectedCfg)
+    assert.equal(plugin.cfg, undefined)
+    plugin.register()
+    assert.deepEqual(plugin.cfg, expectedCfg)
   })
 })
 
 describe('load_dkim_ini', () => {
   beforeEach(() => {
-    this.plugin.config.root_path = path.resolve(__dirname, 'config')
+    plugin.config.root_path = path.resolve(__dirname, 'config')
   })
 
   it('loads dkim.ini and populates cfg', () => {
-    assert.equal(this.plugin.cfg, undefined)
-    this.plugin.load_dkim_ini()
-    assert.deepEqual(this.plugin.cfg, expectedCfg)
+    assert.equal(plugin.cfg, undefined)
+    plugin.load_dkim_ini()
+    assert.deepEqual(plugin.cfg, expectedCfg)
   })
 })
 
@@ -117,97 +117,97 @@ describe('load_dkim_ini', () => {
 
 describe('get_sender_domain', () => {
   beforeEach(() => {
-    this.connection.transaction.mail_from = {}
+    connection.transaction.mail_from = {}
   })
 
   it('no transaction returns undefined', () => {
-    delete this.connection.transaction
-    assert.equal(this.plugin.get_sender_domain(this.connection), undefined)
+    delete connection.transaction
+    assert.equal(plugin.get_sender_domain(connection), undefined)
   })
 
   it('no headers returns undefined', () => {
-    assert.equal(this.plugin.get_sender_domain(this.connection), undefined)
+    assert.equal(plugin.get_sender_domain(connection), undefined)
   })
 
   it('no From header returns undefined', () => {
-    this.connection.transaction.header.add(
+    connection.transaction.header.add(
       'Date',
       utils.date_to_str(new Date()),
     )
-    assert.equal(this.plugin.get_sender_domain(this.connection), undefined)
+    assert.equal(plugin.get_sender_domain(connection), undefined)
   })
 
   it('no From header but env MAIL FROM returns envelope domain', () => {
-    this.connection.transaction.mail_from = new Address.Address(
+    connection.transaction.mail_from = new Address.Address(
       '<test@example.com>',
     )
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'example.com')
+    assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('env MAIL FROM domain is lowercased', () => {
-    this.connection.transaction.mail_from = new Address.Address(
+    connection.transaction.mail_from = new Address.Address(
       '<test@Example.cOm>',
     )
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'example.com')
+    assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('From header that is not an FQDN returns undefined from key dir lookup', () => {
-    this.connection.transaction.header.add('From', 'root (Cron Daemon)')
-    const r = this.plugin.get_sender_domain(this.connection)
-    this.plugin.get_key_dir(this.connection, { domain: r }, (err, dir) => {
+    connection.transaction.header.add('From', 'root (Cron Daemon)')
+    const r = plugin.get_sender_domain(connection)
+    plugin.get_key_dir(connection, { domain: r }, (err, dir) => {
       assert.equal(dir, undefined)
     })
   })
 
   it('simple From header returns domain', () => {
-    this.connection.transaction.header.add(
+    connection.transaction.header.add(
       'From',
       'John Doe <jdoe@example.com>',
     )
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'example.com')
+    assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('From header domain is lowercased', () => {
-    this.connection.transaction.header.add(
+    connection.transaction.header.add(
       'From',
       'John Doe <jdoe@Example.Com>',
     )
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'example.com')
+    assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('quoted-name From header returns domain', () => {
-    this.connection.transaction.header.add(
+    connection.transaction.header.add(
       'From',
       '"Joe Q. Public" <john.q.public@example.com>',
     )
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'example.com')
+    assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('From header with RFC 5322 comments returns domain', () => {
-    this.connection.transaction.header.add(
+    connection.transaction.header.add(
       'From',
       'Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>',
     )
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'silly.test')
+    assert.equal(plugin.get_sender_domain(connection), 'silly.test')
   })
 
   it('multi-address From uses Sender header domain', () => {
-    this.connection.transaction.header.add(
+    connection.transaction.header.add(
       'From',
       'ben@example.com,carol@example.com',
     )
-    this.connection.transaction.header.add('Sender', 'dave@example.net')
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'example.net')
+    connection.transaction.header.add('Sender', 'dave@example.net')
+    assert.equal(plugin.get_sender_domain(connection), 'example.net')
   })
 
   it('RFC 6854 group syntax From falls back to Sender header', () => {
     // TODO: From addr parser does not fully support RFC 6854 Group Syntax
-    this.connection.transaction.header.add(
+    connection.transaction.header.add(
       'From',
       'Managing Partners:ben@example.com,carol@example.com;',
     )
-    this.connection.transaction.header.add('Sender', 'dave@example.net')
-    assert.equal(this.plugin.get_sender_domain(this.connection), 'example.net')
+    connection.transaction.header.add('Sender', 'dave@example.net')
+    assert.equal(plugin.get_sender_domain(connection), 'example.net')
   })
 })
 
@@ -221,7 +221,7 @@ describe('get_key_dir', () => {
   })
 
   it('empty props returns undefined dir', (t, done) => {
-    this.plugin.get_key_dir(this.connection, '', (err, dir) => {
+    plugin.get_key_dir(connection, '', (err, dir) => {
       assert.ifError(err)
       assert.equal(dir, undefined)
       done()
@@ -229,10 +229,10 @@ describe('get_key_dir', () => {
   })
 
   it('domain with no key dir returns undefined', (t, done) => {
-    this.connection.transaction.mail_from = new Address.Address(
+    connection.transaction.mail_from = new Address.Address(
       '<matt@non-exist.com>',
     )
-    this.plugin.get_key_dir(this.connection, 'non-exist.com', (err, dir) => {
+    plugin.get_key_dir(connection, 'non-exist.com', (err, dir) => {
       assert.equal(dir, undefined)
       done()
     })
@@ -240,11 +240,11 @@ describe('get_key_dir', () => {
 
   it('resolves example.com key dir when HARAKA env is set', (t, done) => {
     process.env.HARAKA = path.resolve('test')
-    this.connection.transaction.mail_from = new Address.Address(
+    connection.transaction.mail_from = new Address.Address(
       '<matt@example.com>',
     )
-    this.plugin.get_key_dir(
-      this.connection,
+    plugin.get_key_dir(
+      connection,
       { domain: 'example.com' },
       (err, dir) => {
         const expected = path.resolve('test', 'config', 'dkim', 'example.com')
@@ -259,18 +259,18 @@ describe('get_key_dir', () => {
 
 describe('get_headers_to_sign', () => {
   it('no configuration returns [from]', () => {
-    this.plugin.cfg = { sign: {} }
-    assert.deepEqual(this.plugin.get_headers_to_sign(), ['from'])
+    plugin.cfg = { sign: {} }
+    assert.deepEqual(plugin.get_headers_to_sign(), ['from'])
   })
 
   it('from,subject configuration returns both', () => {
-    this.plugin.cfg = { sign: { headers: 'from,subject' } }
-    assert.deepEqual(this.plugin.get_headers_to_sign(), ['from', 'subject'])
+    plugin.cfg = { sign: { headers: 'from,subject' } }
+    assert.deepEqual(plugin.get_headers_to_sign(), ['from', 'subject'])
   })
 
   it('subject-only configuration appends from', () => {
-    this.plugin.cfg = { sign: { headers: 'subject' } }
-    assert.deepEqual(this.plugin.get_headers_to_sign(), ['subject', 'from'])
+    plugin.cfg = { sign: { headers: 'subject' } }
+    assert.deepEqual(plugin.get_headers_to_sign(), ['subject', 'from'])
   })
 })
 
@@ -279,18 +279,18 @@ describe('get_headers_to_sign', () => {
 describe('get_sign_properties', () => {
   beforeEach(() => {
     // root_path must point to test/config so load_key can find dkim/example.com/private
-    this.plugin.config.root_path = path.resolve('test', 'config')
-    this.plugin.load_dkim_ini()
-    this.plugin.load_dkim_default_key()
+    plugin.config.root_path = path.resolve('test', 'config')
+    plugin.load_dkim_ini()
+    plugin.load_dkim_default_key()
     // HARAKA must be set so get_key_dir resolves the test/config/dkim/ directory
     process.env.HARAKA = path.resolve('test')
   })
 
   it('example.com domain resolves to per-domain key', (t, done) => {
-    this.connection.transaction.mail_from = new Address.Address(
+    connection.transaction.mail_from = new Address.Address(
       '<test@example.com>',
     )
-    this.plugin.get_sign_properties(this.connection, (err, props) => {
+    plugin.get_sign_properties(connection, (err, props) => {
       if (err) console.error(err)
       assert.deepEqual(props, {
         domain: 'example.com',
@@ -302,13 +302,13 @@ describe('get_sign_properties', () => {
   })
 
   it('no domain discovered falls back to default key', (t, done) => {
-    this.connection.transaction.mail_from = {}
-    this.plugin.get_sign_properties(this.connection, (err, props) => {
+    connection.transaction.mail_from = {}
+    plugin.get_sign_properties(connection, (err, props) => {
       if (err) console.error(err)
       assert.deepEqual(props, {
-        domain: this.plugin.cfg.sign.domain,
-        selector: this.plugin.cfg.sign.selector,
-        private_key: this.plugin.private_key,
+        domain: plugin.cfg.sign.domain,
+        selector: plugin.cfg.sign.selector,
+        private_key: plugin.private_key,
       })
       done()
     })
@@ -319,12 +319,12 @@ describe('get_sign_properties', () => {
 
 describe('has_key_data', () => {
   it('empty props returns false', () => {
-    assert.equal(this.plugin.has_key_data(this.connection, {}), false)
+    assert.equal(plugin.has_key_data(connection, {}), false)
   })
 
   it('missing selector returns false', () => {
     assert.equal(
-      this.plugin.has_key_data(this.connection, {
+      plugin.has_key_data(connection, {
         private_key: 'key',
         domain: 'example.com',
       }),
@@ -334,7 +334,7 @@ describe('has_key_data', () => {
 
   it('missing domain returns false', () => {
     assert.equal(
-      this.plugin.has_key_data(this.connection, {
+      plugin.has_key_data(connection, {
         private_key: 'key',
         selector: 'sel',
       }),
@@ -344,7 +344,7 @@ describe('has_key_data', () => {
 
   it('fully populated props returns true', () => {
     assert.equal(
-      this.plugin.has_key_data(this.connection, {
+      plugin.has_key_data(connection, {
         selector: 'foo',
         domain: 'bar',
         private_key: 'anything',
@@ -365,7 +365,7 @@ describe('load_key', () => {
       'example.com',
       'private',
     )
-    assert.equal(this.plugin.load_key(testKey), insecure_512b_test_key)
+    assert.equal(plugin.load_key(testKey), insecure_512b_test_key)
   })
 })
 
@@ -423,23 +423,23 @@ afterEach(() => {
 
 describe('hook_pre_send_trans_email', () => {
   it('skips when sign.enabled is false', (t, done) => {
-    this.plugin.load_dkim_ini()
-    this.plugin.cfg.sign.enabled = false
-    this.plugin.hook_pre_send_trans_email(() => done(), this.connection)
+    plugin.load_dkim_ini()
+    plugin.cfg.sign.enabled = false
+    plugin.hook_pre_send_trans_email(() => done(), connection)
   })
 
   it('skips when transaction is absent', (t, done) => {
-    this.plugin.load_dkim_ini()
-    this.plugin.cfg.sign.enabled = true
-    delete this.connection.transaction
-    this.plugin.hook_pre_send_trans_email(() => done(), this.connection)
+    plugin.load_dkim_ini()
+    plugin.cfg.sign.enabled = true
+    delete connection.transaction
+    plugin.hook_pre_send_trans_email(() => done(), connection)
   })
 
   it('skips when already signed', (t, done) => {
-    this.plugin.load_dkim_ini()
-    this.plugin.cfg.sign.enabled = true
-    this.connection.transaction.notes.dkim_signed = true
-    this.plugin.hook_pre_send_trans_email(() => done(), this.connection)
+    plugin.load_dkim_ini()
+    plugin.cfg.sign.enabled = true
+    connection.transaction.notes.dkim_signed = true
+    plugin.hook_pre_send_trans_email(() => done(), connection)
   })
 
   it('signs the message and adds DKIM-Signature header', (t, done) => {
@@ -467,26 +467,26 @@ describe('hook_pre_send_trans_email', () => {
   })
 
   it('skips when no key data available', (t, done) => {
-    this.plugin.load_dkim_ini()
-    this.plugin.cfg.sign.enabled = true
-    this.plugin.cfg.sign.domain = undefined
-    this.plugin.cfg.sign.selector = undefined
-    this.plugin.private_key = undefined
+    plugin.load_dkim_ini()
+    plugin.cfg.sign.enabled = true
+    plugin.cfg.sign.domain = undefined
+    plugin.cfg.sign.selector = undefined
+    plugin.private_key = undefined
     // No per-domain key dir (HARAKA points to fixtures, no dkim/ dir)
     process.env.HARAKA = path.join(__dirname, 'fixtures')
 
-    this.connection.transaction.mail_from = new Address.Address(
+    connection.transaction.mail_from = new Address.Address(
       '<test@example.com>',
     )
-    this.plugin.hook_pre_send_trans_email(() => {
-      const sig = this.connection.transaction.header.get('DKIM-Signature')
+    plugin.hook_pre_send_trans_email(() => {
+      const sig = connection.transaction.header.get('DKIM-Signature')
       assert.equal(
         sig,
         '',
         'DKIM-Signature must NOT be added when key is missing',
       )
       done()
-    }, this.connection)
+    }, connection)
   })
 })
 
@@ -494,29 +494,29 @@ describe('hook_pre_send_trans_email', () => {
 
 describe('dkim_verify', () => {
   it('skips when verify.enabled is false', (t, done) => {
-    this.plugin.load_dkim_ini()
-    this.plugin.cfg.verify.enabled = false
-    this.plugin.dkim_verify(() => done(), this.connection)
+    plugin.load_dkim_ini()
+    plugin.cfg.verify.enabled = false
+    plugin.dkim_verify(() => done(), connection)
   })
 
   it('skips when transaction is absent', (t, done) => {
-    this.plugin.load_dkim_ini()
-    this.plugin.cfg.verify.enabled = true
-    delete this.connection.transaction
-    this.plugin.dkim_verify(() => done(), this.connection)
+    plugin.load_dkim_ini()
+    plugin.cfg.verify.enabled = true
+    delete connection.transaction
+    plugin.dkim_verify(() => done(), connection)
   })
 
   it('returns no/bad signature when email has no DKIM-Signature', (t, done) => {
-    this.plugin.load_dkim_ini()
-    this.plugin.cfg.verify.enabled = true
+    plugin.load_dkim_ini()
+    plugin.cfg.verify.enabled = true
 
     const pass = new PassThrough()
-    this.connection.transaction.message_stream = pass
+    connection.transaction.message_stream = pass
 
-    this.plugin.dkim_verify((code) => {
+    plugin.dkim_verify((code) => {
       assert.equal(code, CONT, 'next must be called with CONT for no-sig')
       done()
-    }, this.connection)
+    }, connection)
 
     pass.end(Buffer.from('From: test@example.com\r\n\r\nHello\r\n'))
   })
@@ -528,14 +528,14 @@ describe('dkim_verify', () => {
           cb(null, [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]])
         })
 
-        this.plugin.load_dkim_ini()
-        this.plugin.cfg.verify.enabled = true
+        plugin.load_dkim_ini()
+        plugin.cfg.verify.enabled = true
 
         const pass = new PassThrough()
-        this.connection.transaction.message_stream = pass
+        connection.transaction.message_stream = pass
 
-        this.plugin.dkim_verify(() => {
-          const notes = this.connection.transaction.notes.dkim_results
+        plugin.dkim_verify(() => {
+          const notes = connection.transaction.notes.dkim_results
           assert.ok(notes, 'dkim_results must be set on transaction notes')
           assert.equal(
             notes[0].result,
@@ -543,7 +543,7 @@ describe('dkim_verify', () => {
             `expected pass, got ${notes[0].result}`,
           )
           done()
-        }, this.connection)
+        }, connection)
 
         pass.end(Buffer.from(signedEmail))
       })
@@ -568,18 +568,18 @@ describe('dkim_verify', () => {
           cb(null, [[`v=DKIM1; k=rsa; p=${wrongKey}`]])
         })
 
-        this.plugin.load_dkim_ini()
-        this.plugin.cfg.verify.enabled = true
+        plugin.load_dkim_ini()
+        plugin.cfg.verify.enabled = true
 
         const pass = new PassThrough()
-        this.connection.transaction.message_stream = pass
+        connection.transaction.message_stream = pass
 
-        this.plugin.dkim_verify(() => {
-          const notes = this.connection.transaction.notes.dkim_results
+        plugin.dkim_verify(() => {
+          const notes = connection.transaction.notes.dkim_results
           assert.ok(notes)
           assert.equal(notes[0].result, 'fail')
           done()
-        }, this.connection)
+        }, connection)
 
         pass.end(Buffer.from(signedEmail))
       })
@@ -593,18 +593,18 @@ describe('dkim_verify', () => {
           cb(null, [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]])
         })
 
-        this.plugin.load_dkim_ini()
-        this.plugin.cfg.verify.enabled = true
+        plugin.load_dkim_ini()
+        plugin.cfg.verify.enabled = true
 
         const pass = new PassThrough()
-        this.connection.transaction.message_stream = pass
+        connection.transaction.message_stream = pass
 
-        this.plugin.dkim_verify(() => {
-          const results = this.connection.transaction.results.get(this.plugin)
+        plugin.dkim_verify(() => {
+          const results = connection.transaction.results.get(plugin)
           assert.ok(results, 'results must be stored')
           assert.ok(results.pass, 'pass domain must be stored')
           done()
-        }, this.connection)
+        }, connection)
 
         pass.end(Buffer.from(signedEmail))
       })
