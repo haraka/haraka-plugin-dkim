@@ -4,6 +4,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.1.0] - 2026-04-12
+
+- feat: add support for body_canon=simple
+- feat: add ed25519 validation
+- test: if opendkim installed, round trip test against it
+- fix: don't allow rsa-sha1, RFC 8301 3.2
+- fix: don't allow subsequent fail to overwrite a pass
+- fix: don't discard valid signatures when DNS has > 1 acceptable hash
+- fix: don't truncate DNS p= value, may have base64 = padding
+- fix: enforce DNS record uniqueness per RFC 6376 3.6.2.2
+- fix: correctly handle header canonicalization ws
+- fix: corrected simple body canonicalization for empty bodies
+- fix: correct a flawed suffix check
+- deps: bump all to latest
+- style: more es6/7 patterns
+- update publish & ci workflow triggers #18
+
 ### [1.0.11] - 2025-02-06
 
 - results: shed duplicate result fields
@@ -59,3 +76,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.0.9]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.9
 [1.0.10]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.10
 [1.0.11]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.11
+[1.1.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.0
