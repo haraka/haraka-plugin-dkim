@@ -20,33 +20,36 @@ const insecure_512b_test_key =
 
 // ─── Shared setup ────────────────────────────────────────────────────────────
 
-beforeEach(() => {
-  this.plugin = new fixtures.plugin('dkim')
-  this.plugin.config.root_path = path.resolve('test', 'config')
-  delete this.plugin.config.overrides_path
+let plugin
+let connection
 
-  this.connection = fixtures.connection.createConnection()
-  this.connection.init_transaction()
+beforeEach(() => {
+  plugin = new fixtures.plugin('dkim')
+  plugin.config.root_path = path.resolve('test', 'config')
+  delete plugin.config.overrides_path
+
+  connection = fixtures.connection.createConnection()
+  connection.init_transaction()
 })
 
 // ─── Plugin bootstrap ─────────────────────────────────────────────────────────
 
 describe('plugin', () => {
   it('loads', () => {
-    assert.ok(this.plugin)
+    assert.ok(plugin)
   })
 
   it('loads dkim.ini', () => {
-    this.plugin.load_dkim_ini()
-    assert.ok(this.plugin.cfg)
+    plugin.load_dkim_ini()
+    assert.ok(plugin.cfg)
   })
 
   it('initializes sign.enabled boolean', () => {
-    this.plugin.load_dkim_ini()
+    plugin.load_dkim_ini()
     assert.equal(
-      this.plugin.cfg.sign.enabled,
+      plugin.cfg.sign.enabled,
       true,
-      JSON.stringify(this.plugin.cfg),
+      JSON.stringify(plugin.cfg),
     )
   })
 })
