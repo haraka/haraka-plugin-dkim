@@ -130,24 +130,17 @@ describe('get_sender_domain', () => {
   })
 
   it('no From header returns undefined', () => {
-    connection.transaction.header.add(
-      'Date',
-      utils.date_to_str(new Date()),
-    )
+    connection.transaction.header.add('Date', utils.date_to_str(new Date()))
     assert.equal(plugin.get_sender_domain(connection), undefined)
   })
 
   it('no From header but env MAIL FROM returns envelope domain', () => {
-    connection.transaction.mail_from = new Address.Address(
-      '<test@example.com>',
-    )
+    connection.transaction.mail_from = new Address.Address('<test@example.com>')
     assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('env MAIL FROM domain is lowercased', () => {
-    connection.transaction.mail_from = new Address.Address(
-      '<test@Example.cOm>',
-    )
+    connection.transaction.mail_from = new Address.Address('<test@Example.cOm>')
     assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
@@ -160,18 +153,12 @@ describe('get_sender_domain', () => {
   })
 
   it('simple From header returns domain', () => {
-    connection.transaction.header.add(
-      'From',
-      'John Doe <jdoe@example.com>',
-    )
+    connection.transaction.header.add('From', 'John Doe <jdoe@example.com>')
     assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('From header domain is lowercased', () => {
-    connection.transaction.header.add(
-      'From',
-      'John Doe <jdoe@Example.Com>',
-    )
+    connection.transaction.header.add('From', 'John Doe <jdoe@Example.Com>')
     assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
@@ -240,18 +227,12 @@ describe('get_key_dir', () => {
 
   it('resolves example.com key dir when HARAKA env is set', (t, done) => {
     process.env.HARAKA = path.resolve('test')
-    connection.transaction.mail_from = new Address.Address(
-      '<matt@example.com>',
-    )
-    plugin.get_key_dir(
-      connection,
-      { domain: 'example.com' },
-      (err, dir) => {
-        const expected = path.resolve('test', 'config', 'dkim', 'example.com')
-        assert.equal(dir, expected)
-        done()
-      },
-    )
+    connection.transaction.mail_from = new Address.Address('<matt@example.com>')
+    plugin.get_key_dir(connection, { domain: 'example.com' }, (err, dir) => {
+      const expected = path.resolve('test', 'config', 'dkim', 'example.com')
+      assert.equal(dir, expected)
+      done()
+    })
   })
 })
 
@@ -287,9 +268,7 @@ describe('get_sign_properties', () => {
   })
 
   it('example.com domain resolves to per-domain key', (t, done) => {
-    connection.transaction.mail_from = new Address.Address(
-      '<test@example.com>',
-    )
+    connection.transaction.mail_from = new Address.Address('<test@example.com>')
     plugin.get_sign_properties(connection, (err, props) => {
       if (err) console.error(err)
       assert.deepEqual(props, {
@@ -475,9 +454,7 @@ describe('hook_pre_send_trans_email', () => {
     // No per-domain key dir (HARAKA points to fixtures, no dkim/ dir)
     process.env.HARAKA = path.join(__dirname, 'fixtures')
 
-    connection.transaction.mail_from = new Address.Address(
-      '<test@example.com>',
-    )
+    connection.transaction.mail_from = new Address.Address('<test@example.com>')
     plugin.hook_pre_send_trans_email(() => {
       const sig = connection.transaction.header.get('DKIM-Signature')
       assert.equal(
