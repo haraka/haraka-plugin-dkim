@@ -126,7 +126,9 @@ describe('DKIMObject.canonicalize (relaxed body)', () => {
   })
 
   it('signs with relaxed body canonicalization', (t, done) => {
-    const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 1024 })
+    const { privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 1024,
+    })
     const headerLines = ['From: <user@example.com>', 'Subject: Test']
     const hdr = new message.Header()
     hdr.parse(headerLines)
@@ -136,7 +138,7 @@ describe('DKIMObject.canonicalize (relaxed body)', () => {
       domain: 'example.com',
       private_key: privateKey,
       headers: ['from', 'subject'],
-      body_canon: 'relaxed'
+      body_canon: 'relaxed',
     }
 
     const signer = new DKIMSignStream(props, hdr, (err, dkimValue) => {

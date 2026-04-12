@@ -88,13 +88,20 @@ function opendkimSign(msgPath, keyPath) {
   const result = spawnSync(
     openDkimBin,
     [
-      '-b', 's',
-      '-d', DOMAIN,
-      '-s', SELECTOR,
-      '-k', keyPath,
-      '-S', 'rsa-sha256',
-      '-c', 'relaxed/simple',
-      '-t', msgPath,
+      '-b',
+      's',
+      '-d',
+      DOMAIN,
+      '-s',
+      SELECTOR,
+      '-k',
+      keyPath,
+      '-S',
+      'rsa-sha256',
+      '-c',
+      'relaxed/simple',
+      '-t',
+      msgPath,
     ],
     { encoding: 'utf-8' },
   )
@@ -203,9 +210,13 @@ function extractDkimTag(dkimHeaderValue, tag) {
 
 describe('OpenDKIM cross-implementation integration', () => {
   if (!openDkimBin) {
-    it('opendkim not found in /{opt,usr}/local/{s}bin or PATH — all tests skipped', {
-      skip: 'opendkim binary not installed',
-    }, () => {})
+    it(
+      'opendkim not found in /{opt,usr}/local/{s}bin or PATH — all tests skipped',
+      {
+        skip: 'opendkim binary not installed',
+      },
+      () => {},
+    )
     return
   }
 

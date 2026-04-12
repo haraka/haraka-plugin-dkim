@@ -17,7 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - fix: corrected simple body canonicalization for empty bodies
 - fix: correct a flawed suffix check
 - deps: bump all to latest
-- update publish & ci workflow triggers (#18)
+- style: more es6/7 patterns
+- update publish & ci workflow triggers #18
 
 ### [1.0.11] - 2025-02-06
 
