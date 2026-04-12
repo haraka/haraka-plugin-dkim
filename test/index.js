@@ -44,7 +44,7 @@ describe('uses text fixtures', () => {
 const expectedCfg = {
   main: {},
   sign: {
-    enabled: false,
+    enabled: true,
     selector: 'mail',
     domain: 'example.com',
     headers:
@@ -52,7 +52,7 @@ const expectedCfg = {
   },
   verify: {
     enabled: true,
-    timeout: 29,
+    timeout: 9,
   },
   headers_to_sign: [
     'from',
@@ -69,7 +69,7 @@ const expectedCfg = {
 
 describe('register', () => {
   beforeEach(() => {
-    this.plugin.config.root_path = path.resolve(__dirname, '../config')
+    this.plugin.config.root_path = path.resolve(__dirname, './config')
   })
 
   it('registers', () => {
@@ -81,7 +81,7 @@ describe('register', () => {
 
 describe('load_dkim_ini', () => {
   beforeEach(() => {
-    this.plugin.config.root_path = path.resolve(__dirname, '../config')
+    this.plugin.config.root_path = path.resolve(__dirname, './config')
   })
 
   it('loads dkim.ini', () => {

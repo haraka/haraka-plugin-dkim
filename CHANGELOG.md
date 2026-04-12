@@ -4,6 +4,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.1.0] - 2026-04-12
+
+- fix: enforce DNS record uniquenes per RFC 6376 3.6.2.2
+- fix: correctly handle header canonicalization ws
+- fix: corrected simple body canonicalization for empty bodies
+- fix: correct a flawed suffix check
+- deps: bump all to latest
+- update publish & ci workflow triggers (#18)
+
 ### [1.0.11] - 2025-02-06
 
 - results: shed duplicate result fields
@@ -59,3 +68,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.0.9]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.9
 [1.0.10]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.10
 [1.0.11]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.11
+[1.1.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.0
