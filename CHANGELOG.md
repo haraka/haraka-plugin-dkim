@@ -8,9 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - fix: don't allow rsa-sha1, RFC 8301 3.2
 - fix: don't allow subsequent fail to overwrite a pass
-- fix: don't discard valid signatures when DNS has > 1 accepable hash
+- fix: don't discard valid signatures when DNS has > 1 acceptable hash
 - fix: don't truncate DNS p= value, may have base64 = padding
-- fix: enforce DNS record uniquenes per RFC 6376 3.6.2.2
+- fix: enforce DNS record uniqueness per RFC 6376 3.6.2.2
 - fix: correctly handle header canonicalization ws
 - fix: corrected simple body canonicalization for empty bodies
 - fix: correct a flawed suffix check

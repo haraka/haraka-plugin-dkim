@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "Haraka DKIM plugin",
   "bin": {
-    "dkim_key_gen": "./config/dkim_key_gen.sh",
+    "dkim_key_gen.sh": "./config/dkim_key_gen.sh",
     "dkimverify": "./bin/dkimverify"
   },
   "main": "index.js",
