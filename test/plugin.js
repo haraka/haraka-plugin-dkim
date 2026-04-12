@@ -1,9 +1,13 @@
 'use strict'
 
 const assert = require('node:assert/strict')
-const { beforeEach, describe, it } = require('node:test')
+const { afterEach, beforeEach, describe, it, mock } = require('node:test')
+const crypto = require('node:crypto')
+const dns = require('node:dns')
+const fsSync = require('node:fs')
 const fs = require('node:fs/promises')
 const path = require('node:path')
+const { PassThrough } = require('node:stream')
 
 const Address = require('address-rfc2821')
 const fixtures = require('haraka-test-fixtures')
@@ -319,6 +323,26 @@ describe('has_key_data', () => {
     assert.equal(this.plugin.has_key_data(this.connection, {}), false)
   })
 
+  it('missing selector returns false', () => {
+    assert.equal(
+      this.plugin.has_key_data(this.connection, {
+        private_key: 'key',
+        domain: 'example.com',
+      }),
+      false,
+    )
+  })
+
+  it('missing domain returns false', () => {
+    assert.equal(
+      this.plugin.has_key_data(this.connection, {
+        private_key: 'key',
+        selector: 'sel',
+      }),
+      false,
+    )
+  })
+
   it('fully populated props returns true', () => {
     assert.equal(
       this.plugin.has_key_data(this.connection, {
@@ -343,5 +367,248 @@ describe('load_key', () => {
       'private',
     )
     assert.equal(this.plugin.load_key(testKey), insecure_512b_test_key)
+  })
+})
+
+// ─── Fixtures for hook tests ──────────────────────────────────────────────────
+
+const rsa1024PrivateKey = fsSync.readFileSync(
+  path.join(__dirname, 'fixtures', 'rsa1024.private.pem'),
+  'utf8',
+)
+const rsa1024PublicKeyDer = crypto
+  .createPublicKey(rsa1024PrivateKey)
+  .export({ type: 'spki', format: 'der' })
+  .toString('base64')
+
+// Build a signed email string using the rsa1024 key.
+function buildSignedEmail(headerLines, body) {
+  return new Promise((resolve, reject) => {
+    const { DKIMSignStream } = require('../lib/dkim')
+    const message = require('haraka-email-message')
+    const emailStr = `${headerLines.join('\r\n')}\r\n\r\n${body}`
+    const header = new message.Header()
+    header.parse(headerLines)
+    const props = {
+      selector: 'testkey',
+      domain: 'example.com',
+      private_key: rsa1024PrivateKey,
+      headers: ['from'],
+    }
+    const signer = new DKIMSignStream(props, header, (err, val) => {
+      if (err) return reject(err)
+      resolve(`DKIM-Signature: ${val}\r\n${emailStr}`)
+    })
+    signer.write(Buffer.from(emailStr))
+    signer.end()
+  })
+}
+
+// Set up a plugin instance configured for hook tests (sign.enabled=true, 1024-bit key).
+// Uses an invalid HARAKA path so get_key_dir falls back to the default key.
+function makeSignPlugin() {
+  const p = new fixtures.plugin('dkim')
+  p.config.root_path = path.resolve('test', 'config')
+  delete p.config.overrides_path
+  p.register()
+  p.private_key = rsa1024PrivateKey // override 512-bit key with usable key
+  process.env.HARAKA = path.join(__dirname, 'fixtures') // no dkim/ subdir here → falls back
+  return p
+}
+
+afterEach(() => {
+  mock.restoreAll()
+})
+
+// ─── hook_pre_send_trans_email ────────────────────────────────────────────────
+
+describe('hook_pre_send_trans_email', () => {
+  it('skips when sign.enabled is false', (t, done) => {
+    this.plugin.load_dkim_ini()
+    this.plugin.cfg.sign.enabled = false
+    this.plugin.hook_pre_send_trans_email(() => done(), this.connection)
+  })
+
+  it('skips when transaction is absent', (t, done) => {
+    this.plugin.load_dkim_ini()
+    this.plugin.cfg.sign.enabled = true
+    delete this.connection.transaction
+    this.plugin.hook_pre_send_trans_email(() => done(), this.connection)
+  })
+
+  it('skips when already signed', (t, done) => {
+    this.plugin.load_dkim_ini()
+    this.plugin.cfg.sign.enabled = true
+    this.connection.transaction.notes.dkim_signed = true
+    this.plugin.hook_pre_send_trans_email(() => done(), this.connection)
+  })
+
+  it('signs the message and adds DKIM-Signature header', (t, done) => {
+    const plugin = makeSignPlugin()
+
+    const conn = fixtures.connection.createConnection()
+    conn.init_transaction()
+    conn.transaction.mail_from = new Address.Address('<test@example.com>')
+    conn.transaction.header.add('From', 'test@example.com')
+
+    const pass = new PassThrough()
+    conn.transaction.message_stream = pass
+    pass.write(Buffer.from('From: test@example.com\r\n\r\nHello world\r\n'))
+    pass.end()
+
+    plugin.hook_pre_send_trans_email(() => {
+      const sig = conn.transaction.header.get('DKIM-Signature')
+      assert.ok(sig, 'DKIM-Signature header must be present after signing')
+      assert.ok(
+        conn.transaction.notes.dkim_signed,
+        'dkim_signed note must be set',
+      )
+      done()
+    }, conn)
+  })
+
+  it('skips when no key data available', (t, done) => {
+    this.plugin.load_dkim_ini()
+    this.plugin.cfg.sign.enabled = true
+    this.plugin.cfg.sign.domain = undefined
+    this.plugin.cfg.sign.selector = undefined
+    this.plugin.private_key = undefined
+    // No per-domain key dir (HARAKA points to fixtures, no dkim/ dir)
+    process.env.HARAKA = path.join(__dirname, 'fixtures')
+
+    this.connection.transaction.mail_from = new Address.Address(
+      '<test@example.com>',
+    )
+    this.plugin.hook_pre_send_trans_email(() => {
+      const sig = this.connection.transaction.header.get('DKIM-Signature')
+      assert.equal(
+        sig,
+        '',
+        'DKIM-Signature must NOT be added when key is missing',
+      )
+      done()
+    }, this.connection)
+  })
+})
+
+// ─── dkim_verify ──────────────────────────────────────────────────────────────
+
+describe('dkim_verify', () => {
+  it('skips when verify.enabled is false', (t, done) => {
+    this.plugin.load_dkim_ini()
+    this.plugin.cfg.verify.enabled = false
+    this.plugin.dkim_verify(() => done(), this.connection)
+  })
+
+  it('skips when transaction is absent', (t, done) => {
+    this.plugin.load_dkim_ini()
+    this.plugin.cfg.verify.enabled = true
+    delete this.connection.transaction
+    this.plugin.dkim_verify(() => done(), this.connection)
+  })
+
+  it('returns no/bad signature when email has no DKIM-Signature', (t, done) => {
+    this.plugin.load_dkim_ini()
+    this.plugin.cfg.verify.enabled = true
+
+    const pass = new PassThrough()
+    this.connection.transaction.message_stream = pass
+
+    this.plugin.dkim_verify((code) => {
+      assert.equal(code, CONT, 'next must be called with CONT for no-sig')
+      done()
+    }, this.connection)
+
+    pass.end(Buffer.from('From: test@example.com\r\n\r\nHello\r\n'))
+  })
+
+  it('verifies a valid DKIM-signed email and produces pass result', (t, done) => {
+    buildSignedEmail(['From: test@example.com'], 'Hello world\r\n')
+      .then((signedEmail) => {
+        mock.method(dns, 'resolveTxt', (_name, cb) => {
+          cb(null, [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]])
+        })
+
+        this.plugin.load_dkim_ini()
+        this.plugin.cfg.verify.enabled = true
+
+        const pass = new PassThrough()
+        this.connection.transaction.message_stream = pass
+
+        this.plugin.dkim_verify(() => {
+          const notes = this.connection.transaction.notes.dkim_results
+          assert.ok(notes, 'dkim_results must be set on transaction notes')
+          assert.equal(
+            notes[0].result,
+            'pass',
+            `expected pass, got ${notes[0].result}`,
+          )
+          done()
+        }, this.connection)
+
+        pass.end(Buffer.from(signedEmail))
+      })
+      .catch(done)
+  })
+
+  it('adds error to results when signature fails', (t, done) => {
+    // Use a signed email but mock DNS to return a different key → fail
+    buildSignedEmail(['From: test@example.com'], 'Hello\r\n')
+      .then((signedEmail) => {
+        mock.method(dns, 'resolveTxt', (_name, cb) => {
+          // Return a DIFFERENT public key → crypto verify returns false → 'fail'
+          const wrongKey = crypto
+            .createPublicKey(
+              fsSync.readFileSync(
+                path.join(__dirname, 'fixtures', 'rsa1280.private.pem'),
+                'utf8',
+              ),
+            )
+            .export({ type: 'spki', format: 'der' })
+            .toString('base64')
+          cb(null, [[`v=DKIM1; k=rsa; p=${wrongKey}`]])
+        })
+
+        this.plugin.load_dkim_ini()
+        this.plugin.cfg.verify.enabled = true
+
+        const pass = new PassThrough()
+        this.connection.transaction.message_stream = pass
+
+        this.plugin.dkim_verify(() => {
+          const notes = this.connection.transaction.notes.dkim_results
+          assert.ok(notes)
+          assert.equal(notes[0].result, 'fail')
+          done()
+        }, this.connection)
+
+        pass.end(Buffer.from(signedEmail))
+      })
+      .catch(done)
+  })
+
+  it('stores pass result in ResultStore', (t, done) => {
+    buildSignedEmail(['From: test@example.com'], 'Hello\r\n')
+      .then((signedEmail) => {
+        mock.method(dns, 'resolveTxt', (_name, cb) => {
+          cb(null, [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]])
+        })
+
+        this.plugin.load_dkim_ini()
+        this.plugin.cfg.verify.enabled = true
+
+        const pass = new PassThrough()
+        this.connection.transaction.message_stream = pass
+
+        this.plugin.dkim_verify(() => {
+          const results = this.connection.transaction.results.get(this.plugin)
+          assert.ok(results, 'results must be stored')
+          assert.ok(results.pass, 'pass domain must be stored')
+          done()
+        }, this.connection)
+
+        pass.end(Buffer.from(signedEmail))
+      })
+      .catch(done)
   })
 })
