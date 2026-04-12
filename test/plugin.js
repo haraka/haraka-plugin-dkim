@@ -46,11 +46,7 @@ describe('plugin', () => {
 
   it('initializes sign.enabled boolean', () => {
     plugin.load_dkim_ini()
-    assert.equal(
-      plugin.cfg.sign.enabled,
-      true,
-      JSON.stringify(plugin.cfg),
-    )
+    assert.equal(plugin.cfg.sign.enabled, true, JSON.stringify(plugin.cfg))
   })
 })
 
