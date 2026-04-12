@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.1.0] - 2026-04-12
 
+- fix: don't allow rsa-sha1, RFC 8301 3.2
+- fix: don't allow subsequent fail to overwrite a pass
+- fix: don't discard valid signatures when DNS has > 1 accepable hash
+- fix: don't truncate DNS p= value, may have base64 = padding
 - fix: enforce DNS record uniquenes per RFC 6376 3.6.2.2
 - fix: correctly handle header canonicalization ws
 - fix: corrected simple body canonicalization for empty bodies
