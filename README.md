@@ -86,7 +86,7 @@ selector = name
 domain = name
 
 [canon]
-body = simple | relaxed  ; default: simple
+body = relaxed  ; allowed: simple, relaxed; default: simple
 ```
 
 - headers: the list of headers that should be signed, separated by commas, colons or semi-colons. Signing prevents tampering with the specified headers. The 'From' header is required by the RFC and will be added if missing.
