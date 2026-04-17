@@ -19,10 +19,6 @@ cd "$DOMAIN" || exit
 date '+%h%Y' | tr '[:upper:]' '[:lower:]' > selector
 
 # Generate private and public keys
-#           - Key length considerations -
-# The minimum recommended key length for short duration keys (ones that
-# will be replaced within a few months) is 1024. If you are unlikely to
-# rotate your keys frequently, choose 2048, at the expense of more CPU.
 openssl genrsa -out private 2048
 chmod 0400 private
 openssl rsa -in private -out public -pubout
