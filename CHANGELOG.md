@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.1.1] - 2026-04-16
 
+- fix: update the config and README to match the code
 
 ### [1.1.0] - 2026-04-12
 

@@ -84,9 +84,13 @@ headers = list, of; headers (REQUIRED)
 ; for single domain configuration
 selector = name
 domain = name
+
+[canon]
+body = simple | relaxed  ; default: simple
 ```
 
 - headers: the list of headers that should be signed, separated by commas, colons or semi-colons. Signing prevents tampering with the specified headers. The 'From' header is required by the RFC and will be added if missing.
+- body (canon): the canonicalization algorithm applied to the message body before hashing. `simple` preserves the body as-is (only normalizing trailing blank lines); `relaxed` additionally collapses whitespace and strips trailing whitespace from each line. Default: `simple`.
 
 ## Single Domain Configuration
 
