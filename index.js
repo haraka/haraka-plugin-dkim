@@ -85,11 +85,17 @@ exports.hook_pre_send_trans_email = function (next, connection) {
     props.headers = this.cfg.headers_to_sign
     props.body_canon = this.cfg.canon?.body || 'simple'
 
+    // Defensive unpipe — see haraka/message-stream#22.
+    const done = (err3, ...rest) => {
+      txn.message_stream.unpipe()
+      next(err3, ...rest)
+    }
+
     txn.message_stream.pipe(
       new DKIMSignStream(props, txn.header, (err2, dkim_header) => {
         if (err2) {
           txn.results.add(this, { err: err2.message })
-          return next(err2)
+          return done(err2)
         }
 
         connection.loginfo(this, `signed for ${props.domain}`)
@@ -97,7 +103,7 @@ exports.hook_pre_send_trans_email = function (next, connection) {
         txn.add_header('DKIM-Signature', dkim_header)
 
         connection.transaction.notes.dkim_signed = true
-        next()
+        done()
       }),
       {}, // options
     )
@@ -313,16 +319,22 @@ exports.dkim_verify = function (next, connection) {
   const txn = connection?.transaction
   if (!txn) return next()
 
+  // Defensive unpipe — see haraka/message-stream#22.
+  const done = (...args) => {
+    txn.message_stream.unpipe()
+    next(...args)
+  }
+
   const verifier = new DKIMVerifyStream(
     this.cfg.verify,
     (err, result, results) => {
       if (err) {
         txn.results.add(this, { err })
-        return next()
+        return done()
       }
       if (!results || results.length === 0) {
         txn.results.add(this, { skip: 'no/bad signature' })
-        return next(CONT, 'no/bad signature')
+        return done(CONT, 'no/bad signature')
       }
 
       connection.logdebug(this, JSON.stringify(results))
@@ -353,7 +365,7 @@ exports.dkim_verify = function (next, connection) {
         txn.results.add(this, rs_tidy)
       }
 
-      next()
+      done()
     },
   )
 

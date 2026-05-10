@@ -5,7 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Unreleased
 
 ### [1.1.2] - 2026-05-10
-- Release v1.1.1 (#22)
+
+- fix: unpipe message-stream on error
 
 ### [1.1.1] - 2026-04-16
 
