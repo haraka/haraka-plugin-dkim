@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.1.2] - 2026-05-10
+
+- fix: unpipe message-stream on error
+
 ### [1.1.1] - 2026-04-16
 
 - fix: update the config and README to match the code
@@ -82,3 +86,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.0.11]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.0.11
 [1.1.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.0
 [1.1.1]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.1
+[1.1.2]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.2

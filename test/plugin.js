@@ -587,4 +587,58 @@ describe('dkim_verify', () => {
       })
       .catch(done)
   })
+
+  // Regression for haraka/message-stream#22.
+  it('calls message_stream.unpipe() after verify completes', (t, done) => {
+    plugin.load_dkim_ini()
+    plugin.cfg.verify.enabled = true
+
+    const pass = new PassThrough()
+    let unpipeCalls = 0
+    const origUnpipe = pass.unpipe.bind(pass)
+    pass.unpipe = (...args) => {
+      unpipeCalls++
+      return origUnpipe(...args)
+    }
+    connection.transaction.message_stream = pass
+
+    plugin.dkim_verify(() => {
+      assert.ok(unpipeCalls >= 1, 'unpipe() must be called before next()')
+      done()
+    }, connection)
+
+    pass.end(Buffer.from('From: test@example.com\r\n\r\nHello\r\n'))
+  })
+})
+
+// Regression for haraka/message-stream#22.
+describe('hook_pre_send_trans_email unpipe', () => {
+  it('calls message_stream.unpipe() after signing completes', (t, done) => {
+    const plugin = makeSignPlugin()
+    // Defensive: an earlier test in this file mutates the cached cfg to
+    // undefined. Re-assert sign properties so this test stays order-independent.
+    plugin.cfg.sign.domain = 'example.com'
+    plugin.cfg.sign.selector = 'mail'
+
+    const conn = fixtures.connection.createConnection()
+    conn.init_transaction()
+    conn.transaction.mail_from = new Address.Address('<test@example.com>')
+    conn.transaction.header.add('From', 'test@example.com')
+
+    const pass = new PassThrough()
+    let unpipeCalls = 0
+    const origUnpipe = pass.unpipe.bind(pass)
+    pass.unpipe = (...args) => {
+      unpipeCalls++
+      return origUnpipe(...args)
+    }
+    conn.transaction.message_stream = pass
+    pass.write(Buffer.from('From: test@example.com\r\n\r\nHello world\r\n'))
+    pass.end()
+
+    plugin.hook_pre_send_trans_email(() => {
+      assert.ok(unpipeCalls >= 1, 'unpipe() must be called before next()')
+      done()
+    }, conn)
+  })
 })
