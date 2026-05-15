@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.2.0] - 2026-05-15
+
+- dep(address-rfc2822) -> @haraka/email-address
+
 ### [1.1.2] - 2026-05-10
 
 - fix: unpipe message-stream on error
@@ -87,3 +91,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.0
 [1.1.1]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.1
 [1.1.2]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.2
+[1.2.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.2.0

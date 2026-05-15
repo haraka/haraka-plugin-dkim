@@ -9,7 +9,7 @@ const fs = require('node:fs/promises')
 const path = require('node:path')
 const { PassThrough } = require('node:stream')
 
-const Address = require('address-rfc2821')
+const Address = require('@haraka/email-address')
 const fixtures = require('haraka-test-fixtures')
 const utils = require('haraka-utils')
 

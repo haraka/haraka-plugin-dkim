@@ -3,7 +3,7 @@
 const fs = require('node:fs/promises')
 const path = require('node:path')
 
-const addrparser = require('address-rfc2822')
+const { parseHeader } = require('@haraka/email-address')
 
 const dkim = require('./lib/dkim')
 
@@ -278,12 +278,21 @@ exports.get_sender_domain = function (connection) {
 
   // The From header can contain multiple addresses and should be
   // parsed as described in RFC 2822 3.6.2.
-  const addrs = this.parse_address_header(connection, from_hdr)
-  if (!addrs || !addrs.length) return envelope_domain
+  let addrs
+  try {
+    addrs = parseHeader(from_hdr)
+  } catch (ignore) {
+    connection.logerror(
+      this,
+      `@haraka/email-address failed to parse From header: ${from_hdr}`,
+    )
+    return domain
+  }
+  if (!addrs || !addrs.length) return domain
 
   // If From has a single address, we're done
   if (addrs.length === 1 && addrs[0].host) {
-    let fromHost = addrs[0].host()
+    let fromHost = addrs[0].host
     if (fromHost) {
       // don't attempt to lower a null or undefined value #1575
       fromHost = fromHost.toLowerCase()
@@ -291,38 +300,15 @@ exports.get_sender_domain = function (connection) {
     return fromHost
   }
 
-  // From has multiple addresses: use the domain in the Sender header,
-  // falling back to the Envelope.
-  return this.sender_header_domain(connection, txn) ?? envelope_domain
-}
-
-exports.envelope_domain = function (connection, txn) {
-  if (!txn.mail_from?.host) return
-  try {
-    return txn.mail_from.host.toLowerCase()
-  } catch (e) {
-    connection.logerror(this, e)
-  }
-}
-
-exports.parse_address_header = function (connection, hdr) {
-  try {
-    return addrparser.parse(hdr)
-  } catch (ignore) {
-    connection.logerror(
-      this,
-      `address-rfc2822 failed to parse From header: ${hdr}`,
-    )
-  }
-}
-
-exports.sender_header_domain = function (connection, txn) {
+  // If From has multiple-addresses, we must parse and
+  // use the domain in the Sender header.
   const sender = txn.header.get_decoded('Sender')
-  if (!sender) return
-  try {
-    return addrparser.parse(sender)[0].host().toLowerCase()
-  } catch (e) {
-    connection.logerror(this, e)
+  if (sender) {
+    try {
+      domain = parseHeader(sender)[0].host.toLowerCase()
+    } catch (e) {
+      connection.logerror(this, e)
+    }
   }
 }
 
