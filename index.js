@@ -278,37 +278,46 @@ exports.get_sender_domain = function (connection) {
 
   // The From header can contain multiple addresses and should be
   // parsed as described in RFC 2822 3.6.2.
-  let addrs
+  const addrs = this.parse_address_header(connection, from_hdr)
+  if (!addrs || !addrs.length) return envelope_domain
+
+  // If From has a single, resolvable address, we're done
+  if (addrs.length === 1 && addrs[0].host) {
+    return addrs[0].host.toLowerCase()
+  }
+
+  // Multiple addresses (or an unresolvable group): use the domain in the
+  // Sender header, falling back to the Envelope.
+  return this.sender_header_domain(connection, txn) ?? envelope_domain
+}
+
+exports.envelope_domain = function (connection, txn) {
+  if (!txn.mail_from?.host) return
   try {
-    addrs = parseHeader(from_hdr)
+    return txn.mail_from.host.toLowerCase()
+  } catch (e) {
+    connection.logerror(this, e)
+  }
+}
+
+exports.parse_address_header = function (connection, hdr) {
+  try {
+    return parseHeader(hdr)
   } catch (ignore) {
     connection.logerror(
       this,
-      `@haraka/email-address failed to parse From header: ${from_hdr}`,
+      `@haraka/email-address failed to parse From header: ${hdr}`,
     )
-    return domain
   }
-  if (!addrs || !addrs.length) return domain
+}
 
-  // If From has a single address, we're done
-  if (addrs.length === 1 && addrs[0].host) {
-    let fromHost = addrs[0].host
-    if (fromHost) {
-      // don't attempt to lower a null or undefined value #1575
-      fromHost = fromHost.toLowerCase()
-    }
-    return fromHost
-  }
-
-  // If From has multiple-addresses, we must parse and
-  // use the domain in the Sender header.
+exports.sender_header_domain = function (connection, txn) {
   const sender = txn.header.get_decoded('Sender')
-  if (sender) {
-    try {
-      domain = parseHeader(sender)[0].host.toLowerCase()
-    } catch (e) {
-      connection.logerror(this, e)
-    }
+  if (!sender) return
+  try {
+    return parseHeader(sender)?.[0]?.host?.toLowerCase()
+  } catch (e) {
+    connection.logerror(this, e)
   }
 }
 

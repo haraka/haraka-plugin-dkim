@@ -1,4 +1,4 @@
-# Changelog
+h # Changelog
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### [1.2.0] - 2026-05-15
 
 - dep(address-rfc2822) -> @haraka/email-address
+- dep(nopt): 9 -> 10
+- test: cov runner is now node:test
 
 ### [1.1.2] - 2026-05-10
 
