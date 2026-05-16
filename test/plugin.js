@@ -144,12 +144,10 @@ describe('get_sender_domain', () => {
     assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
-  it('From header that is not an FQDN returns undefined from key dir lookup', () => {
+  it('From header that is not an FQDN returns undefined from key dir lookup', async () => {
     connection.transaction.header.add('From', 'root (Cron Daemon)')
     const r = plugin.get_sender_domain(connection)
-    plugin.get_key_dir(connection, { domain: r }, (err, dir) => {
-      assert.equal(dir, undefined)
-    })
+    assert.equal(await plugin.get_key_dir(connection, r), undefined)
   })
 
   it('simple From header returns domain', () => {
@@ -207,32 +205,25 @@ describe('get_key_dir', () => {
     })
   })
 
-  it('empty props returns undefined dir', (t, done) => {
-    plugin.get_key_dir(connection, '', (err, dir) => {
-      assert.ifError(err)
-      assert.equal(dir, undefined)
-      done()
-    })
+  it('empty domain returns undefined dir', async () => {
+    assert.equal(await plugin.get_key_dir(connection, ''), undefined)
   })
 
-  it('domain with no key dir returns undefined', (t, done) => {
+  it('domain with no key dir returns undefined', async () => {
     connection.transaction.mail_from = new Address.Address(
       '<matt@non-exist.com>',
     )
-    plugin.get_key_dir(connection, 'non-exist.com', (err, dir) => {
-      assert.equal(dir, undefined)
-      done()
-    })
+    assert.equal(
+      await plugin.get_key_dir(connection, 'non-exist.com'),
+      undefined,
+    )
   })
 
-  it('resolves example.com key dir when HARAKA env is set', (t, done) => {
+  it('resolves example.com key dir when HARAKA env is set', async () => {
     process.env.HARAKA = path.resolve('test')
     connection.transaction.mail_from = new Address.Address('<matt@example.com>')
-    plugin.get_key_dir(connection, { domain: 'example.com' }, (err, dir) => {
-      const expected = path.resolve('test', 'config', 'dkim', 'example.com')
-      assert.equal(dir, expected)
-      done()
-    })
+    const expected = path.resolve('test', 'config', 'dkim', 'example.com')
+    assert.equal(await plugin.get_key_dir(connection, 'example.com'), expected)
   })
 })
 
@@ -267,29 +258,23 @@ describe('get_sign_properties', () => {
     process.env.HARAKA = path.resolve('test')
   })
 
-  it('example.com domain resolves to per-domain key', (t, done) => {
+  it('example.com domain resolves to per-domain key', async () => {
     connection.transaction.mail_from = new Address.Address('<test@example.com>')
-    plugin.get_sign_properties(connection, (err, props) => {
-      if (err) console.error(err)
-      assert.deepEqual(props, {
-        domain: 'example.com',
-        selector: 'aug2019',
-        private_key: insecure_512b_test_key,
-      })
-      done()
+    const props = await plugin.get_sign_properties(connection)
+    assert.deepEqual(props, {
+      domain: 'example.com',
+      selector: 'aug2019',
+      private_key: insecure_512b_test_key,
     })
   })
 
-  it('no domain discovered falls back to default key', (t, done) => {
+  it('no domain discovered falls back to default key', async () => {
     connection.transaction.mail_from = {}
-    plugin.get_sign_properties(connection, (err, props) => {
-      if (err) console.error(err)
-      assert.deepEqual(props, {
-        domain: plugin.cfg.sign.domain,
-        selector: plugin.cfg.sign.selector,
-        private_key: plugin.private_key,
-      })
-      done()
+    const props = await plugin.get_sign_properties(connection)
+    assert.deepEqual(props, {
+      domain: plugin.cfg.sign.domain,
+      selector: plugin.cfg.sign.selector,
+      private_key: plugin.private_key,
     })
   })
 })
