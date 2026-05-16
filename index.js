@@ -1,9 +1,8 @@
 'use strict'
 
-const fs = require('node:fs')
+const fs = require('node:fs/promises')
 const path = require('node:path')
 
-const async = require('async')
 const addrparser = require('address-rfc2822')
 
 const dkim = require('./lib/dkim')
@@ -72,45 +71,53 @@ exports.hook_pre_send_trans_email = function (next, connection) {
     return next()
   }
 
-  this.get_sign_properties(connection, (err, props) => {
-    if (!connection?.transaction) return next()
-    // props: selector, domain, & private_key
-    if (err) connection.logerror(this, `${err.message}`)
+  this.sign_message(connection, next).catch((err) => {
+    connection.logerror(this, `${err.message}`)
+    next()
+  })
+}
 
-    if (!this.has_key_data(connection, props)) return next()
+exports.sign_message = async function (connection, next) {
+  const props = await this.get_sign_properties(connection)
 
-    connection.logdebug(this, `domain: ${props.domain}`)
+  if (!connection?.transaction) return next()
+  if (!props || !this.has_key_data(connection, props)) return next()
 
-    const txn = connection.transaction
-    props.headers = this.cfg.headers_to_sign
-    props.body_canon = this.cfg.canon?.body || 'simple'
+  connection.logdebug(this, `domain: ${props.domain}`)
 
+  const txn = connection.transaction
+  props.headers = this.cfg.headers_to_sign
+  props.body_canon = this.cfg.canon?.body || 'simple'
+
+  try {
+    const dkim_header = await this.run_sign_stream(txn, props)
+    connection.loginfo(this, `signed for ${props.domain}`)
+    txn.results.add(this, { pass: dkim_header })
+    txn.add_header('DKIM-Signature', dkim_header)
+    connection.transaction.notes.dkim_signed = true
     // Defensive unpipe — see haraka/message-stream#22.
-    const done = (err3, ...rest) => {
-      txn.message_stream.unpipe()
-      next(err3, ...rest)
-    }
+    txn.message_stream.unpipe()
+    next()
+  } catch (err) {
+    txn.results.add(this, { err: err.message })
+    txn.message_stream.unpipe()
+    next(err)
+  }
+}
 
+exports.run_sign_stream = function (txn, props) {
+  return new Promise((resolve, reject) => {
     txn.message_stream.pipe(
-      new DKIMSignStream(props, txn.header, (err2, dkim_header) => {
-        if (err2) {
-          txn.results.add(this, { err: err2.message })
-          return done(err2)
-        }
-
-        connection.loginfo(this, `signed for ${props.domain}`)
-        txn.results.add(this, { pass: dkim_header })
-        txn.add_header('DKIM-Signature', dkim_header)
-
-        connection.transaction.notes.dkim_signed = true
-        done()
+      new DKIMSignStream(props, txn.header, (err, dkim_header) => {
+        if (err) return reject(err)
+        resolve(dkim_header)
       }),
       {}, // options
     )
   })
 }
 
-exports.get_sign_properties = function (connection, done) {
+exports.get_sign_properties = async function (connection) {
   if (!connection.transaction) return
 
   const domain = this.get_sender_domain(connection)
@@ -124,91 +131,91 @@ exports.get_sign_properties = function (connection, done) {
 
   const props = { domain }
 
-  this.get_key_dir(connection, props, (err, keydir) => {
-    if (err) {
-      console.error(`err: ${err}`)
-      connection.logerror(this, err)
-      return done(
-        new Error(`Error getting DKIM key_dir for ${domain}: ${err}`),
-        props,
-      )
-    }
-
-    if (!connection.transaction) return done(null, props)
-
-    // a directory for ${domain} exists
-    if (keydir) {
-      props.domain = path.basename(keydir) // keydir might be apex (vs sub)domain
-      props.private_key = this.load_key(
-        path.join('dkim', props.domain, 'private'),
-      )
-      props.selector = this.load_key(
-        path.join('dkim', props.domain, 'selector'),
-      ).trim()
-
-      if (!props.selector) {
-        connection.transaction.results.add(this, {
-          err: `missing selector for domain ${domain}`,
-        })
-      }
-      if (!props.private_key) {
-        connection.transaction.results.add(this, {
-          err: `missing dkim private_key for domain ${domain}`,
-        })
-      }
-
-      if (props.selector && props.private_key) {
-        // AND has correct files
-        return done(null, props)
-      }
-    }
-
-    // try [default / single domain] configuration
-    if (this.cfg.sign.domain && this.cfg.sign.selector && this.private_key) {
-      connection.transaction.results.add(this, {
-        msg: 'using default key',
-        emit: true,
-      })
-
-      props.domain = this.cfg.sign.domain
-      props.private_key = this.private_key
-      props.selector = this.cfg.sign.selector
-
-      return done(null, props)
-    }
-
-    console.error(`no valid DKIM properties found`)
-    done(null, props)
-  })
-}
-
-exports.get_key_dir = function (connection, props, done) {
-  if (!props.domain) return done()
-
-  // split the domain name into labels
-  const labels = props.domain.split('.')
-  const haraka_dir = process.env.HARAKA || ''
-
-  // list possible matches (ex: mail.example.com, example.com, com)
-  const dom_hier = []
-  for (let i = 0; i < labels.length; i++) {
-    const dom = labels.slice(i).join('.')
-    dom_hier[i] = path.resolve(haraka_dir, 'config', 'dkim', dom)
+  let keydir
+  try {
+    keydir = await this.get_key_dir(connection, domain)
+  } catch (err) {
+    console.error(`err: ${err}`)
+    connection.logerror(
+      this,
+      `Error getting DKIM key_dir for ${domain}: ${err}`,
+    )
+    return props
   }
 
-  async.detectSeries(
-    dom_hier,
-    (filePath, iterDone) => {
-      fs.stat(filePath, (err, stats) => {
-        if (err) return iterDone(null, false)
-        iterDone(null, stats.isDirectory())
+  if (!connection.transaction) return props
+
+  // a directory for ${domain} exists
+  if (keydir) {
+    props.domain = path.basename(keydir) // keydir might be apex (vs sub)domain
+    props.private_key = this.load_key(
+      path.join('dkim', props.domain, 'private'),
+    )
+    props.selector = this.load_key(
+      path.join('dkim', props.domain, 'selector'),
+    ).trim()
+
+    if (!props.selector) {
+      connection.transaction.results.add(this, {
+        err: `missing selector for domain ${domain}`,
       })
-    },
-    (err, results) => {
-      connection.logdebug(this, results)
-      done(err, results)
-    },
-  )
+    }
+    if (!props.private_key) {
+      connection.transaction.results.add(this, {
+        err: `missing dkim private_key for domain ${domain}`,
+      })
+    }
+
+    // AND has correct files
+    if (props.selector && props.private_key) return props
+  }
+
+  // try [default / single domain] configuration
+  if (this.cfg.sign.domain && this.cfg.sign.selector && this.private_key) {
+    connection.transaction.results.add(this, {
+      msg: 'using default key',
+      emit: true,
+    })
+
+    props.domain = this.cfg.sign.domain
+    props.private_key = this.private_key
+    props.selector = this.cfg.sign.selector
+
+    return props
+  }
+
+  console.error(`no valid DKIM properties found`)
+  return props
+}
+
+// Resolve the most specific config/dkim/<domain> directory that exists,
+// walking from the full host up the label hierarchy (e.g. mail.example.com,
+// example.com, com). Returns the matched absolute path, or undefined.
+exports.get_key_dir = async function (connection, domain) {
+  if (!domain) return
+
+  const haraka_dir = process.env.HARAKA || ''
+  const labels = domain.split('.')
+
+  for (let i = 0; i < labels.length; i++) {
+    const filePath = path.resolve(
+      haraka_dir,
+      'config',
+      'dkim',
+      labels.slice(i).join('.'),
+    )
+    try {
+      const stats = await fs.stat(filePath)
+      if (stats.isDirectory()) {
+        connection.logdebug(this, filePath)
+        return filePath
+      }
+    } catch {
+      // not found / not accessible — try the next, less specific label
+    }
+  }
+
+  connection.logdebug(this, undefined)
 }
 
 exports.has_key_data = function (conn, props) {
@@ -257,38 +264,22 @@ exports.get_sender_domain = function (connection) {
   const txn = connection?.transaction
   if (!txn) return
 
-  // fallback: use Envelope FROM when header parsing fails
-  let domain
-  if (txn.mail_from.host) {
-    try {
-      domain = txn.mail_from.host.toLowerCase()
-    } catch (e) {
-      connection.logerror(this, e)
-    }
-  }
+  // fallback: use the Envelope FROM when From header parsing fails
+  const envelope_domain = this.envelope_domain(connection, txn)
 
   // In case of forwarding, only use the Envelope
-  if (txn.notes.forward) return domain
-  if (!txn.header) return domain
+  if (txn.notes.forward) return envelope_domain
+  if (!txn.header) return envelope_domain
 
-  // the DKIM signing key should be aligned with the domain in the From
+  // The DKIM signing key should be aligned with the domain in the From
   // header (see DMARC). Try to parse the domain from there.
   const from_hdr = txn.header.get_decoded('From')
-  if (!from_hdr) return domain
+  if (!from_hdr) return envelope_domain
 
   // The From header can contain multiple addresses and should be
   // parsed as described in RFC 2822 3.6.2.
-  let addrs
-  try {
-    addrs = addrparser.parse(from_hdr)
-  } catch (ignore) {
-    connection.logerror(
-      this,
-      `address-rfc2822 failed to parse From header: ${from_hdr}`,
-    )
-    return domain
-  }
-  if (!addrs || !addrs.length) return domain
+  const addrs = this.parse_address_header(connection, from_hdr)
+  if (!addrs || !addrs.length) return envelope_domain
 
   // If From has a single address, we're done
   if (addrs.length === 1 && addrs[0].host) {
@@ -300,17 +291,39 @@ exports.get_sender_domain = function (connection) {
     return fromHost
   }
 
-  // If From has multiple-addresses, we must parse and
-  // use the domain in the Sender header.
-  const sender = txn.header.get_decoded('Sender')
-  if (sender) {
-    try {
-      domain = addrparser.parse(sender)[0].host().toLowerCase()
-    } catch (e) {
-      connection.logerror(this, e)
-    }
+  // From has multiple addresses: use the domain in the Sender header,
+  // falling back to the Envelope.
+  return this.sender_header_domain(connection, txn) ?? envelope_domain
+}
+
+exports.envelope_domain = function (connection, txn) {
+  if (!txn.mail_from?.host) return
+  try {
+    return txn.mail_from.host.toLowerCase()
+  } catch (e) {
+    connection.logerror(this, e)
   }
-  return domain
+}
+
+exports.parse_address_header = function (connection, hdr) {
+  try {
+    return addrparser.parse(hdr)
+  } catch (ignore) {
+    connection.logerror(
+      this,
+      `address-rfc2822 failed to parse From header: ${hdr}`,
+    )
+  }
+}
+
+exports.sender_header_domain = function (connection, txn) {
+  const sender = txn.header.get_decoded('Sender')
+  if (!sender) return
+  try {
+    return addrparser.parse(sender)[0].host().toLowerCase()
+  } catch (e) {
+    connection.logerror(this, e)
+  }
 }
 
 exports.dkim_verify = function (next, connection) {
@@ -319,55 +332,70 @@ exports.dkim_verify = function (next, connection) {
   const txn = connection?.transaction
   if (!txn) return next()
 
-  // Defensive unpipe — see haraka/message-stream#22.
-  const done = (...args) => {
-    txn.message_stream.unpipe()
-    next(...args)
-  }
-
-  const verifier = new DKIMVerifyStream(
-    this.cfg.verify,
-    (err, result, results) => {
-      if (err) {
-        txn.results.add(this, { err })
-        return done()
-      }
-      if (!results || results.length === 0) {
-        txn.results.add(this, { skip: 'no/bad signature' })
-        return done(CONT, 'no/bad signature')
-      }
-
-      connection.logdebug(this, JSON.stringify(results))
-      txn.notes.dkim_results = results // Store results for other plugins
-
-      for (const res of results) {
-        let res_err = ''
-        if (res.error) res_err = ` (${res.error})`
-        connection.auth_results(
-          `dkim=${res.result}${res_err} header.i=${res.identity} header.d=${res.domain} header.s=${res.selector}`,
-        )
-        connection.loginfo(
-          this,
-          `identity="${res.identity}" domain="${res.domain}" selector="${res.selector}" result=${res.result} ${res_err}`,
-        )
-
-        // save to ResultStore
-        const rs_tidy = {
-          domain: res.domain,
-          identity: res.identity,
-          selector: res.selector,
-        }
-
-        if (res.result === 'pass') rs_tidy.pass = res.domain
-        if (res.result === 'fail') rs_tidy.fail = res.domain
-        if (res.error) rs_tidy.err = res.error
-
-        txn.results.add(this, rs_tidy)
-      }
-
-      done()
+  this.verify_message(connection, txn).then(
+    (args) => {
+      // Defensive unpipe — see haraka/message-stream#22.
+      txn.message_stream.unpipe()
+      next(...args)
+    },
+    (err) => {
+      txn.results.add(this, { err })
+      txn.message_stream.unpipe()
+      next()
     },
   )
+}
 
-  txn.message_stream.pipe(verifier, { line_endings: '\r\n' })
+exports.run_verify_stream = function (txn) {
+  return new Promise((resolve, reject) => {
+    const verifier = new DKIMVerifyStream(
+      this.cfg.verify,
+      (err, result, results) => {
+        if (err) return reject(err)
+        resolve(results)
+      },
+    )
+    txn.message_stream.pipe(verifier, { line_endings: '\r\n' })
+  })
+}
+
+// Runs verification and records results. Resolves to the args array to
+// pass to next() (empty, or [CONT, 'no/bad signature']).
+exports.verify_message = async function (connection, txn) {
+  const results = await this.run_verify_stream(txn)
+
+  if (!results || results.length === 0) {
+    txn.results.add(this, { skip: 'no/bad signature' })
+    return [CONT, 'no/bad signature']
+  }
+
+  connection.logdebug(this, JSON.stringify(results))
+  txn.notes.dkim_results = results // Store results for other plugins
+
+  for (const res of results) {
+    let res_err = ''
+    if (res.error) res_err = ` (${res.error})`
+    connection.auth_results(
+      `dkim=${res.result}${res_err} header.i=${res.identity} header.d=${res.domain} header.s=${res.selector}`,
+    )
+    connection.loginfo(
+      this,
+      `identity="${res.identity}" domain="${res.domain}" selector="${res.selector}" result=${res.result} ${res_err}`,
+    )
+
+    // save to ResultStore
+    const rs_tidy = {
+      domain: res.domain,
+      identity: res.identity,
+      selector: res.selector,
+    }
+
+    if (res.result === 'pass') rs_tidy.pass = res.domain
+    if (res.result === 'fail') rs_tidy.fail = res.domain
+    if (res.error) rs_tidy.err = res.error
+
+    txn.results.add(this, rs_tidy)
+  }
+
+  return []
 }
