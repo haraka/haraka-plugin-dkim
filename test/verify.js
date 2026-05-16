@@ -79,11 +79,11 @@ function runDkimObjectToDns(headerOverrides, dnsResponse) {
       ...headerOverrides,
     })
 
-    mock.method(dns, 'resolveTxt', (_name, cb) => {
+    mock.method(dns.promises, 'resolveTxt', async () => {
       if (dnsResponse instanceof Error) {
-        cb(dnsResponse)
+        throw dnsResponse
       } else {
-        cb(null, dnsResponse)
+        return dnsResponse
       }
     })
 
@@ -415,8 +415,8 @@ describe('DNS record validation', () => {
       )
       buildSignedEmail(['From: test@example.com'], 'Hello world\r\n', ['from'])
         .then((signedEmail) => {
-          mock.method(dns, 'resolveTxt', (_name, cb) => {
-            cb(null, [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]])
+          mock.method(dns.promises, 'resolveTxt', async () => {
+            return [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]]
           })
 
           const verifier = new DKIMVerifyStream(
@@ -452,8 +452,8 @@ describe('DNS record validation', () => {
     it('k=rsa matches rsa-sha256 signature', (t, done) => {
       buildSignedEmail(['From: test@example.com'], 'Hello world\r\n', ['from'])
         .then((signedEmail) => {
-          mock.method(dns, 'resolveTxt', (_name, cb) => {
-            cb(null, [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]])
+          mock.method(dns.promises, 'resolveTxt', async () => {
+            return [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]]
           })
           const verifier = new DKIMVerifyStream(
             { timeout: 5 },
@@ -482,8 +482,8 @@ describe('DNS record validation', () => {
     it('hash algorithm in single-value h= list produces pass', (t, done) => {
       buildSignedEmail(['From: test@example.com'], 'Hello world\r\n', ['from'])
         .then((signedEmail) => {
-          mock.method(dns, 'resolveTxt', (_name, cb) => {
-            cb(null, [['v=DKIM1; k=rsa; h=sha256; p=' + rsa1280PublicKeyDer]])
+          mock.method(dns.promises, 'resolveTxt', async () => {
+            return [['v=DKIM1; k=rsa; h=sha256; p=' + rsa1280PublicKeyDer]]
           })
           const verifier = new DKIMVerifyStream(
             { timeout: 5 },
@@ -504,10 +504,10 @@ describe('DNS record validation', () => {
       // so h=sha256:sha512 failed because 'sha512' is not in 'rsa-sha256'.
       buildSignedEmail(['From: test@example.com'], 'Hello world\r\n', ['from'])
         .then((signedEmail) => {
-          mock.method(dns, 'resolveTxt', (_name, cb) => {
-            cb(null, [
+          mock.method(dns.promises, 'resolveTxt', async () => {
+            return [
               ['v=DKIM1; k=rsa; h=sha256:sha512; p=' + rsa1280PublicKeyDer],
-            ])
+            ]
           })
           const verifier = new DKIMVerifyStream(
             { timeout: 5 },
@@ -530,9 +530,9 @@ describe('DNS record validation', () => {
     it('hash algorithm not in h= list produces invalid', (t, done) => {
       buildSignedEmail(['From: test@example.com'], 'Hello world\r\n', ['from'])
         .then((signedEmail) => {
-          mock.method(dns, 'resolveTxt', (_name, cb) => {
+          mock.method(dns.promises, 'resolveTxt', async () => {
             // Only sha1 is acceptable; signature uses sha256
-            cb(null, [['v=DKIM1; k=rsa; h=sha1; p=' + rsa1280PublicKeyDer]])
+            return [['v=DKIM1; k=rsa; h=sha1; p=' + rsa1280PublicKeyDer]]
           })
           const verifier = new DKIMVerifyStream(
             { timeout: 5 },
@@ -557,8 +557,8 @@ describe('DNS record validation', () => {
     it('g=* (wildcard) matches any local part', (t, done) => {
       buildSignedEmail(['From: test@example.com'], 'Hello\r\n', ['from'])
         .then((signedEmail) => {
-          mock.method(dns, 'resolveTxt', (_name, cb) => {
-            cb(null, [['v=DKIM1; k=rsa; g=*; p=' + rsa1280PublicKeyDer]])
+          mock.method(dns.promises, 'resolveTxt', async () => {
+            return [['v=DKIM1; k=rsa; g=*; p=' + rsa1280PublicKeyDer]]
           })
           const verifier = new DKIMVerifyStream(
             { timeout: 5 },
@@ -655,14 +655,14 @@ describe('DKIMVerifyStream', () => {
           `\r\n${badSig}From: test@example.com`,
         )
 
-        mock.method(dns, 'resolveTxt', (name, cb) => {
+        mock.method(dns.promises, 'resolveTxt', async (name) => {
           if (name.startsWith('testkey.')) {
-            cb(null, [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]])
+            return [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]]
           } else {
             const err = Object.assign(new Error('NXDOMAIN'), {
               code: dns.NXDOMAIN,
             })
-            cb(err)
+            throw err
           }
         })
 
@@ -691,14 +691,14 @@ describe('DKIMVerifyStream', () => {
         // Insert bad signature BEFORE the good one — bad sig processed first
         const twoSigEmail = badSig + signedEmail
 
-        mock.method(dns, 'resolveTxt', (name, cb) => {
+        mock.method(dns.promises, 'resolveTxt', async (name) => {
           if (name.startsWith('testkey.')) {
-            cb(null, [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]])
+            return [['v=DKIM1; k=rsa; p=' + rsa1280PublicKeyDer]]
           } else {
             const err = Object.assign(new Error('NXDOMAIN'), {
               code: dns.NXDOMAIN,
             })
-            cb(err)
+            throw err
           }
         })
 
@@ -790,9 +790,9 @@ describe('Ed25519 Support (RFC 8463)', () => {
     const fullDkimHeader = `DKIM-Signature: ${dkimHeaderPartial}${signature}\r\n`
     const fullEmail = `${fullDkimHeader}${header}\r\n${body}`
 
-    mock.method(dns, 'resolveTxt', (name, cb) => {
+    mock.method(dns.promises, 'resolveTxt', async (name) => {
       assert.equal(name, 'ed25519._domainkey.example.com')
-      cb(null, [['v=DKIM1; k=ed25519; p=' + pubKeyBase64]])
+      return [['v=DKIM1; k=ed25519; p=' + pubKeyBase64]]
     })
 
     const verifier = new DKIMVerifyStream({}, (err, result, results) => {

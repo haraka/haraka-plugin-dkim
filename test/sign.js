@@ -318,8 +318,8 @@ describe('sign + verify round-trip', () => {
       rsa1024PrivateKey,
     )
       .then((signedEmail) => {
-        mock.method(dns, 'resolveTxt', (_name, cb) => {
-          cb(null, [[`v=DKIM1; k=rsa; p=${pubDer}`]])
+        mock.method(dns.promises, 'resolveTxt', async () => {
+          return [[`v=DKIM1; k=rsa; p=${pubDer}`]]
         })
 
         const verifier = new DKIMVerifyStream({ timeout: 5 }, (err, result) => {
@@ -341,8 +341,8 @@ describe('sign + verify round-trip', () => {
       rsa1280PrivateKey,
     )
       .then((signedEmail) => {
-        mock.method(dns, 'resolveTxt', (_name, cb) => {
-          cb(null, [[`v=DKIM1; k=rsa; p=${rsa1280PublicKeyDer}`]])
+        mock.method(dns.promises, 'resolveTxt', async () => {
+          return [[`v=DKIM1; k=rsa; p=${rsa1280PublicKeyDer}`]]
         })
 
         const verifier = new DKIMVerifyStream({ timeout: 5 }, (err, result) => {
@@ -373,8 +373,8 @@ describe('sign + verify round-trip', () => {
           'Tampered body',
         )
 
-        mock.method(dns, 'resolveTxt', (_name, cb) => {
-          cb(null, [[`v=DKIM1; k=rsa; p=${rsa1280PublicKeyDer}`]])
+        mock.method(dns.promises, 'resolveTxt', async () => {
+          return [[`v=DKIM1; k=rsa; p=${rsa1280PublicKeyDer}`]]
         })
 
         const verifier = new DKIMVerifyStream({ timeout: 5 }, (err, result) => {

@@ -180,11 +180,11 @@ function harakaSign(headerLines, body, privKeyPem) {
 // Resolves with the overall result string ('pass', 'fail', etc.).
 function harakaVerify(signedEmailStr, pubKeyDerB64) {
   return new Promise((resolve, reject) => {
-    mock.method(dns, 'resolveTxt', (name, cb) => {
+    mock.method(dns.promises, 'resolveTxt', async (name) => {
       if (name.endsWith(`._domainkey.${DOMAIN}`)) {
-        cb(null, [[`v=DKIM1; k=rsa; p=${pubKeyDerB64}`]])
+        return [[`v=DKIM1; k=rsa; p=${pubKeyDerB64}`]]
       } else {
-        cb(Object.assign(new Error('NXDOMAIN'), { code: dns.NXDOMAIN }))
+        throw Object.assign(new Error('NXDOMAIN'), { code: dns.NXDOMAIN })
       }
     })
 

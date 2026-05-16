@@ -486,8 +486,8 @@ describe('dkim_verify', () => {
   it('verifies a valid DKIM-signed email and produces pass result', (t, done) => {
     buildSignedEmail(['From: test@example.com'], 'Hello world\r\n')
       .then((signedEmail) => {
-        mock.method(dns, 'resolveTxt', (_name, cb) => {
-          cb(null, [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]])
+        mock.method(dns.promises, 'resolveTxt', async () => {
+          return [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]]
         })
 
         plugin.load_dkim_ini()
@@ -516,7 +516,7 @@ describe('dkim_verify', () => {
     // Use a signed email but mock DNS to return a different key → fail
     buildSignedEmail(['From: test@example.com'], 'Hello\r\n')
       .then((signedEmail) => {
-        mock.method(dns, 'resolveTxt', (_name, cb) => {
+        mock.method(dns.promises, 'resolveTxt', async () => {
           // Return a DIFFERENT public key → crypto verify returns false → 'fail'
           const wrongKey = crypto
             .createPublicKey(
@@ -527,7 +527,7 @@ describe('dkim_verify', () => {
             )
             .export({ type: 'spki', format: 'der' })
             .toString('base64')
-          cb(null, [[`v=DKIM1; k=rsa; p=${wrongKey}`]])
+          return [[`v=DKIM1; k=rsa; p=${wrongKey}`]]
         })
 
         plugin.load_dkim_ini()
@@ -551,8 +551,8 @@ describe('dkim_verify', () => {
   it('stores pass result in ResultStore', (t, done) => {
     buildSignedEmail(['From: test@example.com'], 'Hello\r\n')
       .then((signedEmail) => {
-        mock.method(dns, 'resolveTxt', (_name, cb) => {
-          cb(null, [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]])
+        mock.method(dns.promises, 'resolveTxt', async () => {
+          return [[`v=DKIM1; k=rsa; p=${rsa1024PublicKeyDer}`]]
         })
 
         plugin.load_dkim_ini()
