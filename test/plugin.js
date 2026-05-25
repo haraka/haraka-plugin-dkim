@@ -236,7 +236,7 @@ describe('get_key_dir', () => {
         undefined,
       )
     } finally {
-      await fs.rmdir(tldDir)
+      await fs.rm(tldDir, { recursive: true, force: true })
     }
   })
 })
