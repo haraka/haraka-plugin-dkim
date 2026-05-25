@@ -135,7 +135,6 @@ exports.get_sign_properties = async function (connection) {
   try {
     keydir = await this.get_key_dir(connection, domain)
   } catch (err) {
-    console.error(`err: ${err}`)
     connection.logerror(
       this,
       `Error getting DKIM key_dir for ${domain}: ${err}`,
@@ -184,20 +183,26 @@ exports.get_sign_properties = async function (connection) {
     return props
   }
 
-  console.error(`no valid DKIM properties found`)
+  connection.transaction?.results.add(this, {
+    err: 'no valid DKIM properties found',
+  })
   return props
 }
 
 // Resolve the most specific config/dkim/<domain> directory that exists,
 // walking from the full host up the label hierarchy (e.g. mail.example.com,
-// example.com, com). Returns the matched absolute path, or undefined.
+// then example.com). The walk stops at two labels so we never match a
+// single-label TLD directory like config/dkim/com/. Admins who need
+// public-suffix-aware behavior (e.g. distinguishing example.co.uk from
+// co.uk) should configure explicit per-domain directories.
 exports.get_key_dir = async function (connection, domain) {
   if (!domain) return
 
   const haraka_dir = process.env.HARAKA || ''
   const labels = domain.split('.')
 
-  for (let i = 0; i < labels.length; i++) {
+  // i <= labels.length - 2 keeps at least 2 labels in the candidate.
+  for (let i = 0; i <= labels.length - 2; i++) {
     const filePath = path.resolve(
       haraka_dir,
       'config',

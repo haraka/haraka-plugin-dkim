@@ -223,6 +223,22 @@ describe('get_key_dir', () => {
     const expected = path.resolve('test', 'config', 'dkim', 'example.com')
     assert.equal(await plugin.get_key_dir(connection, 'example.com'), expected)
   })
+
+  it('does not walk into a single-label TLD directory', async () => {
+    // Create config/dkim/com/ to simulate the audit's worst case: a stray
+    // single-label dir that the old walk would have matched for any *.com.
+    process.env.HARAKA = path.resolve('test')
+    const tldDir = path.resolve('test', 'config', 'dkim', 'com')
+    await fs.mkdir(tldDir, { recursive: true })
+    try {
+      assert.equal(
+        await plugin.get_key_dir(connection, 'unmatched.com'),
+        undefined,
+      )
+    } finally {
+      await fs.rmdir(tldDir)
+    }
+  })
 })
 
 // ─── get_headers_to_sign ─────────────────────────────────────────────────────
