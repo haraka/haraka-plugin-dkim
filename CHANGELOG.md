@@ -12,7 +12,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - fix(sign): stop get_key_dir's label walk above the TLD
 - fix(sign): remove console.error from the signing path
 - doc(README): tighten the signed-header guarantee
-
 - dep(nopt): 9 -> 10
 - test: cov runner is now node:test
 
