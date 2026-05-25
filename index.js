@@ -3,7 +3,7 @@
 const fs = require('node:fs/promises')
 const path = require('node:path')
 
-const addrparser = require('address-rfc2822')
+const { parseHeader } = require('@haraka/email-address')
 
 const dkim = require('./lib/dkim')
 
@@ -135,7 +135,6 @@ exports.get_sign_properties = async function (connection) {
   try {
     keydir = await this.get_key_dir(connection, domain)
   } catch (err) {
-    console.error(`err: ${err}`)
     connection.logerror(
       this,
       `Error getting DKIM key_dir for ${domain}: ${err}`,
@@ -184,20 +183,26 @@ exports.get_sign_properties = async function (connection) {
     return props
   }
 
-  console.error(`no valid DKIM properties found`)
+  connection.transaction?.results.add(this, {
+    err: 'no valid DKIM properties found',
+  })
   return props
 }
 
 // Resolve the most specific config/dkim/<domain> directory that exists,
 // walking from the full host up the label hierarchy (e.g. mail.example.com,
-// example.com, com). Returns the matched absolute path, or undefined.
+// then example.com). The walk stops at two labels so we never match a
+// single-label TLD directory like config/dkim/com/. Admins who need
+// public-suffix-aware behavior (e.g. distinguishing example.co.uk from
+// co.uk) should configure explicit per-domain directories.
 exports.get_key_dir = async function (connection, domain) {
   if (!domain) return
 
   const haraka_dir = process.env.HARAKA || ''
   const labels = domain.split('.')
 
-  for (let i = 0; i < labels.length; i++) {
+  // i <= labels.length - 2 keeps at least 2 labels in the candidate.
+  for (let i = 0; i <= labels.length - 2; i++) {
     const filePath = path.resolve(
       haraka_dir,
       'config',
@@ -281,18 +286,13 @@ exports.get_sender_domain = function (connection) {
   const addrs = this.parse_address_header(connection, from_hdr)
   if (!addrs || !addrs.length) return envelope_domain
 
-  // If From has a single address, we're done
+  // If From has a single, resolvable address, we're done
   if (addrs.length === 1 && addrs[0].host) {
-    let fromHost = addrs[0].host()
-    if (fromHost) {
-      // don't attempt to lower a null or undefined value #1575
-      fromHost = fromHost.toLowerCase()
-    }
-    return fromHost
+    return addrs[0].host.toLowerCase()
   }
 
-  // From has multiple addresses: use the domain in the Sender header,
-  // falling back to the Envelope.
+  // Multiple addresses (or an unresolvable group): use the domain in the
+  // Sender header, falling back to the Envelope.
   return this.sender_header_domain(connection, txn) ?? envelope_domain
 }
 
@@ -307,11 +307,11 @@ exports.envelope_domain = function (connection, txn) {
 
 exports.parse_address_header = function (connection, hdr) {
   try {
-    return addrparser.parse(hdr)
+    return parseHeader(hdr)
   } catch (ignore) {
     connection.logerror(
       this,
-      `address-rfc2822 failed to parse From header: ${hdr}`,
+      `@haraka/email-address failed to parse From header: ${hdr}`,
     )
   }
 }
@@ -320,7 +320,7 @@ exports.sender_header_domain = function (connection, txn) {
   const sender = txn.header.get_decoded('Sender')
   if (!sender) return
   try {
-    return addrparser.parse(sender)[0].host().toLowerCase()
+    return parseHeader(sender)?.[0]?.host?.toLowerCase()
   } catch (e) {
     connection.logerror(this, e)
   }

@@ -1,8 +1,19 @@
-# Changelog
+h # Changelog
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
+
+### [1.2.0] - 2026-05-15
+
+- dep(address-rfc2822) -> @haraka/email-address
+- fix(sign): emit one h= entry per signed header instance
+  - sign instances bottom-to-top per RFC 6376 §5.4.2
+- fix(sign): stop get_key_dir's label walk above the TLD
+- fix(sign): remove console.error from the signing path
+- doc(README): tighten the signed-header guarantee
+- dep(nopt): 9 -> 10
+- test: cov runner is now node:test
 
 ### [1.1.2] - 2026-05-10
 
@@ -87,3 +98,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.0
 [1.1.1]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.1
 [1.1.2]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.2
+[1.2.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.2.0

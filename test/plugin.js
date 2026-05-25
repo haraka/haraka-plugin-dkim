@@ -9,7 +9,7 @@ const fs = require('node:fs/promises')
 const path = require('node:path')
 const { PassThrough } = require('node:stream')
 
-const Address = require('address-rfc2821')
+const { Address } = require('@haraka/email-address')
 const fixtures = require('haraka-test-fixtures')
 const utils = require('haraka-utils')
 
@@ -135,12 +135,12 @@ describe('get_sender_domain', () => {
   })
 
   it('no From header but env MAIL FROM returns envelope domain', () => {
-    connection.transaction.mail_from = new Address.Address('<test@example.com>')
+    connection.transaction.mail_from = new Address('<test@example.com>')
     assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
   it('env MAIL FROM domain is lowercased', () => {
-    connection.transaction.mail_from = new Address.Address('<test@Example.cOm>')
+    connection.transaction.mail_from = new Address('<test@Example.cOm>')
     assert.equal(plugin.get_sender_domain(connection), 'example.com')
   })
 
@@ -210,9 +210,7 @@ describe('get_key_dir', () => {
   })
 
   it('domain with no key dir returns undefined', async () => {
-    connection.transaction.mail_from = new Address.Address(
-      '<matt@non-exist.com>',
-    )
+    connection.transaction.mail_from = new Address('<matt@non-exist.com>')
     assert.equal(
       await plugin.get_key_dir(connection, 'non-exist.com'),
       undefined,
@@ -221,9 +219,25 @@ describe('get_key_dir', () => {
 
   it('resolves example.com key dir when HARAKA env is set', async () => {
     process.env.HARAKA = path.resolve('test')
-    connection.transaction.mail_from = new Address.Address('<matt@example.com>')
+    connection.transaction.mail_from = new Address('<matt@example.com>')
     const expected = path.resolve('test', 'config', 'dkim', 'example.com')
     assert.equal(await plugin.get_key_dir(connection, 'example.com'), expected)
+  })
+
+  it('does not walk into a single-label TLD directory', async () => {
+    // Create config/dkim/com/ to simulate the audit's worst case: a stray
+    // single-label dir that the old walk would have matched for any *.com.
+    process.env.HARAKA = path.resolve('test')
+    const tldDir = path.resolve('test', 'config', 'dkim', 'com')
+    await fs.mkdir(tldDir, { recursive: true })
+    try {
+      assert.equal(
+        await plugin.get_key_dir(connection, 'unmatched.com'),
+        undefined,
+      )
+    } finally {
+      await fs.rmdir(tldDir)
+    }
   })
 })
 
@@ -259,7 +273,7 @@ describe('get_sign_properties', () => {
   })
 
   it('example.com domain resolves to per-domain key', async () => {
-    connection.transaction.mail_from = new Address.Address('<test@example.com>')
+    connection.transaction.mail_from = new Address('<test@example.com>')
     const props = await plugin.get_sign_properties(connection)
     assert.deepEqual(props, {
       domain: 'example.com',
@@ -411,7 +425,7 @@ describe('hook_pre_send_trans_email', () => {
 
     const conn = fixtures.connection.createConnection()
     conn.init_transaction()
-    conn.transaction.mail_from = new Address.Address('<test@example.com>')
+    conn.transaction.mail_from = new Address('<test@example.com>')
     conn.transaction.header.add('From', 'test@example.com')
 
     const pass = new PassThrough()
@@ -439,7 +453,7 @@ describe('hook_pre_send_trans_email', () => {
     // No per-domain key dir (HARAKA points to fixtures, no dkim/ dir)
     process.env.HARAKA = path.join(__dirname, 'fixtures')
 
-    connection.transaction.mail_from = new Address.Address('<test@example.com>')
+    connection.transaction.mail_from = new Address('<test@example.com>')
     plugin.hook_pre_send_trans_email(() => {
       const sig = connection.transaction.header.get('DKIM-Signature')
       assert.equal(
@@ -607,7 +621,7 @@ describe('hook_pre_send_trans_email unpipe', () => {
 
     const conn = fixtures.connection.createConnection()
     conn.init_transaction()
-    conn.transaction.mail_from = new Address.Address('<test@example.com>')
+    conn.transaction.mail_from = new Address('<test@example.com>')
     conn.transaction.header.add('From', 'test@example.com')
 
     const pass = new PassThrough()

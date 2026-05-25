@@ -287,6 +287,32 @@ describe('DKIMSignStream header format', () => {
     assert.ok(dkimValue.includes('b='), 'must include b=')
   })
 
+  it('emits one h= entry per signed instance when a header repeats (RFC 6376 §5.4.2)', async () => {
+    // Two Received fields — both must be signed and named in h=.
+    const dkimValue = await signEmail(
+      [
+        'Received: from mx2.example.net by relay.example.com',
+        'Received: from sender.example.org by mx2.example.net',
+        'From: test@example.com',
+        'Subject: Hello',
+      ],
+      'Hello world\r\n',
+      ['from', 'received', 'subject'],
+      rsa1024PrivateKey,
+    )
+    const h = getValueFromDKIMHeader(dkimValue, 'h')
+    // Two received instances → two `received` entries in h=
+    const recvCount = h
+      .toLowerCase()
+      .split(':')
+      .filter((n) => n === 'received').length
+    assert.equal(
+      recvCount,
+      2,
+      `expected two 'received' entries in h=, got: ${h}`,
+    )
+  })
+
   it('uses relaxed/simple canonicalization', async () => {
     const dkimValue = await signEmail(
       ['From: test@example.com'],
