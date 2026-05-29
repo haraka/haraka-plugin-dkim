@@ -10,7 +10,7 @@ const path = require('node:path')
 const { PassThrough } = require('node:stream')
 
 const { Address } = require('@haraka/email-address')
-const fixtures = require('haraka-test-fixtures')
+const { makeConnection, makePlugin } = require('haraka-test-fixtures')
 const utils = require('haraka-utils')
 
 // The 512-bit RSA key stored in test/config/dkim/example.com/private.
@@ -24,12 +24,11 @@ let plugin
 let connection
 
 beforeEach(() => {
-  plugin = new fixtures.plugin('dkim')
+  plugin = makePlugin('dkim', { register: false })
   plugin.config.root_path = path.resolve('test', 'config')
   delete plugin.config.overrides_path
 
-  connection = fixtures.connection.createConnection()
-  connection.init_transaction()
+  connection = makeConnection({ withTxn: true })
 })
 
 // ─── Plugin bootstrap ─────────────────────────────────────────────────────────
@@ -52,13 +51,12 @@ describe('plugin', () => {
 
 describe('uses haraka-test-fixtures', () => {
   it('sets up a connection', () => {
-    const conn = fixtures.connection.createConnection({})
+    const conn = makeConnection()
     assert.ok(conn.server)
   })
 
   it('sets up a transaction', () => {
-    const conn = fixtures.connection.createConnection({})
-    conn.init_transaction()
+    const conn = makeConnection({ withTxn: true })
     assert.ok(conn.transaction.header)
   })
 })
@@ -384,7 +382,7 @@ function buildSignedEmail(headerLines, body) {
 // Set up a plugin instance configured for hook tests (sign.enabled=true, 1024-bit key).
 // Uses an invalid HARAKA path so get_key_dir falls back to the default key.
 function makeSignPlugin() {
-  const p = new fixtures.plugin('dkim')
+  const p = makePlugin('dkim', { register: false })
   p.config.root_path = path.resolve('test', 'config')
   delete p.config.overrides_path
   p.register()
@@ -423,8 +421,7 @@ describe('hook_pre_send_trans_email', () => {
   it('signs the message and adds DKIM-Signature header', (t, done) => {
     const plugin = makeSignPlugin()
 
-    const conn = fixtures.connection.createConnection()
-    conn.init_transaction()
+    const conn = makeConnection({ withTxn: true })
     conn.transaction.mail_from = new Address('<test@example.com>')
     conn.transaction.header.add('From', 'test@example.com')
 
@@ -619,8 +616,7 @@ describe('hook_pre_send_trans_email unpipe', () => {
     plugin.cfg.sign.domain = 'example.com'
     plugin.cfg.sign.selector = 'mail'
 
-    const conn = fixtures.connection.createConnection()
-    conn.init_transaction()
+    const conn = makeConnection({ withTxn: true })
     conn.transaction.mail_from = new Address('<test@example.com>')
     conn.transaction.header.add('From', 'test@example.com')
 

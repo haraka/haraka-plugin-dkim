@@ -1,7 +1,6 @@
-[![CI Test Status][ci-img]][ci-url]
-[![Code Climate][clim-img]][clim-url]
-
 # haraka-plugin-dkim
+
+[![Test][ci-img]][ci-url] [![Cover][cov-img]][cov-url] [![Qlty][qlty-img]][qlty-url]
 
 ## INSTALL
 
@@ -149,5 +148,7 @@ This plugin and underlying library do not currently support DKIM body length lim
 
 [ci-img]: https://github.com/haraka/haraka-plugin-dkim/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/haraka/haraka-plugin-dkim/actions/workflows/ci.yml
-[clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-dkim/badges/gpa.svg
-[clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-dkim
+[cov-img]: https://codecov.io/github/haraka/haraka-plugin-dkim/coverage.svg
+[cov-url]: https://codecov.io/github/haraka/haraka-plugin-dkim
+[qlty-img]: https://qlty.sh/gh/haraka/projects/haraka-plugin-dkim/maintainability.svg
+[qlty-url]: https://qlty.sh/gh/haraka/projects/haraka-plugin-dkim
