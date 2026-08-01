@@ -4,7 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-- test: refactored against test-fixtures 1.7.0
+### [1.3.0] - 2026-07-31
+
+- fix(sign): parse the raw From/Sender headers, not decoded
+- test: refactored against test-fixtures 1.7.0 #27
+- fix doc (#26)
 
 ### [1.2.0] - 2026-05-15
 
@@ -101,3 +105,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.1]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.1
 [1.1.2]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.2
 [1.2.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.2.0
+[1.3.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.3.0
