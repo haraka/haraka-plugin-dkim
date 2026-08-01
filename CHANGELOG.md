@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - test: refactored against test-fixtures 1.7.0 #27
 - fix doc (#26)
 - deps(all): bump versions
+- refactor many fns to async/await #25
+- refactored into smaller idiomatic fns #25
+- dep(async): removed #25
 
 ### [1.2.0] - 2026-05-15
 
