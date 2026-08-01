@@ -278,7 +278,9 @@ exports.get_sender_domain = function (connection) {
 
   // The DKIM signing key should be aligned with the domain in the From
   // header (see DMARC). Try to parse the domain from there.
-  const from_hdr = txn.header.get_decoded('From')
+  // Use the raw header: RFC 2047 encoded-words exist so that specials like
+  // commas survive inside a display-name.
+  const from_hdr = txn.header.get('From')
   if (!from_hdr) return envelope_domain
 
   // The From header can contain multiple addresses and should be
@@ -317,7 +319,7 @@ exports.parse_address_header = function (connection, hdr) {
 }
 
 exports.sender_header_domain = function (connection, txn) {
-  const sender = txn.header.get_decoded('Sender')
+  const sender = txn.header.get('Sender')
   if (!sender) return
   try {
     return parseHeader(sender)?.[0]?.host?.toLowerCase()

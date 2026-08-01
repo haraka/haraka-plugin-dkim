@@ -183,6 +183,26 @@ describe('get_sender_domain', () => {
     assert.equal(plugin.get_sender_domain(connection), 'example.net')
   })
 
+  it('MIME-encoded From with encoded commas returns domain', () => {
+    connection.transaction.header.add(
+      'From',
+      '=?utf-8?Q?PORT_Mozipremierek=2C_filmes_h=C3=ADrek=2C_=C3=A9rdekess=C3=A9g?=\n =?utf-8?Q?ek=2C_kritik=C3=A1k_=2831=2E_h=C3=A9t=29?= <hirlevel@example.hu>',
+    )
+    assert.equal(plugin.get_sender_domain(connection), 'example.hu')
+  })
+
+  it('MIME-encoded Sender with encoded commas returns domain', () => {
+    connection.transaction.header.add(
+      'From',
+      'ben@example.com,carol@example.com',
+    )
+    connection.transaction.header.add(
+      'Sender',
+      '=?utf-8?Q?Doe=2C_Dave?= <dave@example.net>',
+    )
+    assert.equal(plugin.get_sender_domain(connection), 'example.net')
+  })
+
   it('RFC 6854 group syntax From falls back to Sender header', () => {
     // TODO: From addr parser does not fully support RFC 6854 Group Syntax
     connection.transaction.header.add(
