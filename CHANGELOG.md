@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### [1.3.0] - 2026-07-31
 
 - fix(sign): parse the raw From/Sender headers, not decoded
-- test: refactored against test-fixtures 1.7.0 #27
+- test: refactored against test-fixtures 1.7.2 #27
 - fix doc (#26)
 - deps(all): bump versions
 - refactor many fns to async/await #25
