@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - fix(sign): parse the raw From/Sender headers, not decoded
 - test: refactored against test-fixtures 1.7.0 #27
 - fix doc (#26)
+- deps(all): bump versions
 
 ### [1.2.0] - 2026-05-15
 
