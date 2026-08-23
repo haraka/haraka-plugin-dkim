@@ -61,6 +61,14 @@ The values in the address have the following meaning:
 
 The default key size created by `dkim_key_gen.sh` is 2048. That is considered secure as of mid-2024.
 
+## UPGRADING
+
+```sh
+diff config/dkim.ini path/to/config/dkim.ini
+```
+
+In particular, check `[sign]headers` for any new additions.
+
 # What to sign
 
 The DKIM signing key for messages from example.org _should_ be signed with
@@ -88,7 +96,7 @@ domain = name
 body = relaxed  ; allowed: simple, relaxed; default: simple
 ```
 
-- headers: the list of headers that should be signed, separated by commas, colons or semi-colons. A verifier that accepts the signature can detect modification of any signed header instance present at signing time (RFC 6376 §5.4.2). The signer covers every instance of each named header; adding a new instance after signing will cause verification to fail. The 'From' header is required by the RFC and will be added if missing.
+- headers: the list of headers that should be signed, separated by commas, colons or semi-colons. A verifier that accepts the signature can detect modification of any signed header instance present at signing time (RFC 6376 §5.4.2). The signer covers every instance of each named header. 'From' header is required by the RFC and will be added if missing.
 - body (canon): the canonicalization algorithm applied to the message body before hashing. `simple` preserves the body as-is (only normalizing trailing blank lines); `relaxed` additionally collapses whitespace and strips trailing whitespace from each line. Default: `simple`.
 
 ## Single Domain Configuration

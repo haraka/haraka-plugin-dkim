@@ -68,7 +68,7 @@ const expectedCfg = {
     selector: 'mail',
     domain: 'example.com',
     headers:
-      'From, Sender, Reply-To, Subject, Date, Message-ID, To, Cc, MIME-Version',
+      'From, Sender, Reply-To, Subject, Date, Message-ID, To, Cc, MIME-Version, Content-Type, Content-Transfer-Encoding, List-Unsubscribe, List-Unsubscribe-Post',
   },
   verify: {
     enabled: true,
@@ -84,6 +84,10 @@ const expectedCfg = {
     'to',
     'cc',
     'mime-version',
+    'content-type',
+    'content-transfer-encoding',
+    'list-unsubscribe',
+    'list-unsubscribe-post',
   ],
 }
 
