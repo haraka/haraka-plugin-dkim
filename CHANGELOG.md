@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.3.1] - 2026-08-23
+
+- config: sign List-Unsubscribe headers (RFC 8058) #30
+- config: sign Content-Type & Content-Transfer-Encoding
+- doc(README): note to diff dkim.ini when upgrading
+
 ### [1.3.0] - 2026-07-31
 
 - fix(sign): parse the raw From/Sender headers, not decoded
@@ -110,3 +116,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.2]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.1.2
 [1.2.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.2.0
 [1.3.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.3.0
+[1.3.1]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.3.1
