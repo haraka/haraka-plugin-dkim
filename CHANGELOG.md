@@ -4,6 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.3.2] - 2026-11-22
+
+- fix: quote header.i/d/s in Auth-Results
+- deps(utils): bump to 2.3.0
+
 ### [1.3.1] - 2026-08-23
 
 - config: sign List-Unsubscribe headers (RFC 8058) #30
@@ -117,3 +122,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.2.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.2.0
 [1.3.0]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.3.0
 [1.3.1]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.3.1
+[1.3.2]: https://github.com/haraka/haraka-plugin-dkim/releases/tag/v1.3.2
