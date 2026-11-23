@@ -99,7 +99,7 @@ describe('register', () => {
   it('registers and populates cfg', () => {
     assert.equal(plugin.cfg, undefined)
     plugin.register()
-    assert.deepEqual(plugin.cfg, expectedCfg)
+    assert.deepEqual(structuredClone(plugin.cfg), expectedCfg)
   })
 })
 
@@ -111,7 +111,7 @@ describe('load_dkim_ini', () => {
   it('loads dkim.ini and populates cfg', () => {
     assert.equal(plugin.cfg, undefined)
     plugin.load_dkim_ini()
-    assert.deepEqual(plugin.cfg, expectedCfg)
+    assert.deepEqual(structuredClone(plugin.cfg), expectedCfg)
   })
 })
 
@@ -659,5 +659,45 @@ describe('hook_pre_send_trans_email unpipe', () => {
       assert.ok(unpipeCalls >= 1, 'unpipe() must be called before next()')
       done()
     }, conn)
+  })
+})
+
+describe('dkim_verify Authentication-Results', () => {
+  let fragments
+
+  beforeEach(() => {
+    mock.method(dns.promises, 'resolveTxt', async () => {
+      throw Object.assign(new Error('not found'), { code: 'ENOTFOUND' })
+    })
+    plugin.load_dkim_ini()
+    plugin.cfg.verify.enabled = true
+    fragments = []
+    connection.auth_results = (msg) => fragments.push(msg)
+  })
+
+  afterEach(() => mock.restoreAll())
+
+  const verify_with_selector = (selector) =>
+    new Promise((resolve) => {
+      const pass = new PassThrough()
+      connection.transaction.message_stream = pass
+      plugin.dkim_verify(() => resolve(fragments), connection)
+      pass.end(
+        Buffer.from(
+          `DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=${selector}; h=from; bh=AAAA; b=AAAA\r\nFrom: test@example.com\r\n\r\nHello\r\n`,
+        ),
+      )
+    })
+
+  it('leaves well-formed properties bare', async () => {
+    assert.deepEqual(await verify_with_selector('sel'), [
+      'dkim=fail (body hash did not verify) header.i=@example.com header.d=example.com header.s=sel',
+    ])
+  })
+
+  it('quotes a selector that would open a comment', async () => {
+    assert.deepEqual(await verify_with_selector('sel(x"'), [
+      'dkim=fail (body hash did not verify) header.i=@example.com header.d=example.com header.s="sel(x\\""',
+    ])
   })
 })
