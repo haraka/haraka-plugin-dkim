@@ -4,6 +4,7 @@ const fs = require('node:fs/promises')
 const path = require('node:path')
 
 const { parseHeader } = require('@haraka/email-address')
+const utils = require('haraka-utils')
 
 const dkim = require('./lib/dkim')
 
@@ -378,7 +379,7 @@ exports.verify_message = async function (connection, txn) {
     let res_err = ''
     if (res.error) res_err = ` (${res.error})`
     connection.auth_results(
-      `dkim=${res.result}${res_err} header.i=${res.identity} header.d=${res.domain} header.s=${res.selector}`,
+      `dkim=${res.result}${res_err} header.i=${utils.auth_results_value(res.identity)} header.d=${utils.auth_results_value(res.domain)} header.s=${utils.auth_results_value(res.selector)}`,
     )
     connection.loginfo(
       this,
