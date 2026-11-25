@@ -10,7 +10,7 @@ const path = require('node:path')
 const { PassThrough } = require('node:stream')
 
 const { Address } = require('@haraka/email-address')
-const { makeConnection, makePlugin } = require('haraka-test-fixtures')
+const { logger, makeConnection, makePlugin } = require('haraka-test-fixtures')
 const utils = require('haraka-utils')
 
 // The 512-bit RSA key stored in test/config/dkim/example.com/private.
@@ -100,6 +100,11 @@ describe('register', () => {
     assert.equal(plugin.cfg, undefined)
     plugin.register()
     assert.deepEqual(structuredClone(plugin.cfg), expectedCfg)
+  })
+
+  it('notes the relaying state at data_post when signing', () => {
+    plugin.register()
+    assert.ok(plugin.hooks.data_post.includes('note_relaying'))
   })
 })
 
@@ -462,6 +467,51 @@ describe('hook_pre_send_trans_email', () => {
         'dkim_signed note must be set',
       )
       done()
+    }, conn)
+  })
+
+  // outbound runs pre_send_trans_email on a connection of its own, which
+  // holds the transaction and log methods and has no relaying
+  function outboundConn(transaction) {
+    const conn = { transaction }
+    logger.add_log_methods(conn)
+    return conn
+  }
+
+  // AUTH sets relaying before MAIL FROM starts the transaction
+  function signableConn(relaying) {
+    const conn = makeConnection()
+    conn.relaying = relaying
+    conn.init_transaction()
+    conn.transaction.mail_from = new Address('<test@example.com>')
+    conn.transaction.header.add('From', 'test@example.com')
+    const pass = new PassThrough()
+    conn.transaction.message_stream = pass
+    pass.end(Buffer.from('From: test@example.com\r\n\r\nHello world\r\n'))
+    return conn
+  }
+
+  it('does not sign mail received from a non-relaying client', (t, done) => {
+    const plugin = makeSignPlugin()
+    const conn = signableConn(false)
+
+    plugin.note_relaying(() => {
+      plugin.hook_pre_send_trans_email(() => {
+        assert.equal(conn.transaction.header.get('DKIM-Signature'), '')
+        done()
+      }, outboundConn(conn.transaction))
+    }, conn)
+  })
+
+  it('signs mail received from a relaying client', (t, done) => {
+    const plugin = makeSignPlugin()
+    const conn = signableConn(true)
+
+    plugin.note_relaying(() => {
+      plugin.hook_pre_send_trans_email(() => {
+        assert.ok(conn.transaction.header.get('DKIM-Signature'))
+        done()
+      }, outboundConn(conn.transaction))
     }, conn)
   })
 
