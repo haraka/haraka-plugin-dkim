@@ -79,6 +79,10 @@ likely result in deliverability problems.
 For correct alignment, Haraka signs each message with that domains DKIM key.
 For an alternative, see the legacy Single Domain Configuration below.
 
+Haraka signs mail from relaying clients (eg, authenticated users) and mail
+that plugins create. Mail received from other clients is not signed, even
+when outbound delivers it (eg, to a local mailbox over LMTP).
+
 # Configuration
 
 DKIM signing is configured in the sign section of `dkim.ini`.

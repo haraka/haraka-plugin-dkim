@@ -26,9 +26,20 @@ exports.register = function () {
     this.register_hook('data_post', 'dkim_verify')
   }
 
+  // hook_pre_send_trans_email is always registered, and a config reload can
+  // enable signing
+  this.register_hook('data_post', 'note_relaying')
+
   if (this.cfg.sign.enabled) {
     this.register_hook('queue_outbound', 'hook_pre_send_trans_email')
   }
+}
+
+// outbound runs pre_send_trans_email with a connection that has no relaying
+exports.note_relaying = function (next, connection) {
+  const txn = connection?.transaction
+  if (txn) txn.notes.dkim_relaying = connection.relaying
+  next()
 }
 
 exports.load_dkim_ini = function () {
@@ -69,6 +80,12 @@ exports.hook_pre_send_trans_email = function (next, connection) {
 
   if (connection.transaction.notes?.dkim_signed) {
     connection.logdebug(this, 'already signed')
+    return next()
+  }
+
+  // === false: mail a plugin creates has no SMTP session and no note
+  if (connection.transaction.notes?.dkim_relaying === false) {
+    connection.logdebug(this, 'not relaying, skip signing')
     return next()
   }
 
