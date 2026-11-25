@@ -106,6 +106,13 @@ describe('register', () => {
     plugin.register()
     assert.ok(plugin.hooks.data_post.includes('note_relaying'))
   })
+
+  it('notes the relaying state at data_post when not signing', () => {
+    plugin.config.root_path = path.resolve(__dirname, '..', 'config')
+    plugin.register()
+    assert.equal(plugin.cfg.sign.enabled, false)
+    assert.ok(plugin.hooks.data_post?.includes('note_relaying'))
+  })
 })
 
 describe('load_dkim_ini', () => {

@@ -26,8 +26,11 @@ exports.register = function () {
     this.register_hook('data_post', 'dkim_verify')
   }
 
+  // hook_pre_send_trans_email is always registered, and a config reload can
+  // enable signing
+  this.register_hook('data_post', 'note_relaying')
+
   if (this.cfg.sign.enabled) {
-    this.register_hook('data_post', 'note_relaying')
     this.register_hook('queue_outbound', 'hook_pre_send_trans_email')
   }
 }
